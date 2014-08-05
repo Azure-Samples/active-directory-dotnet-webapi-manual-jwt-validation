@@ -114,20 +114,22 @@ namespace TodoListService_ManualJwt
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler()
             {
                 // Disable certificate validation.  Certificate validation is not necessary since the AAD signing certificate is a self-signed certificate.
-                CertificateValidator = X509CertificateValidator.None
+                // TODO: CertificateValidator = X509CertificateValidator.None
             };
 
             TokenValidationParameters validationParameters = new TokenValidationParameters
             {
-                AllowedAudience = audience,
+                ValidAudience = audience,
                 ValidIssuer = issuer,
-                SigningTokens = signingTokens
+                IssuerSigningTokens = signingTokens,
+                CertificateValidator = X509CertificateValidator.None
             };
 
             try
             {
                 // Validate token.
-                ClaimsPrincipal claimsPrincipal = tokenHandler.ValidateToken(jwtToken, validationParameters);
+                SecurityToken validatedToken = new JwtSecurityToken();
+                ClaimsPrincipal claimsPrincipal = tokenHandler.ValidateToken(jwtToken, validationParameters, out validatedToken);
 
                 // Set the ClaimsPrincipal on the current thread.
                 Thread.CurrentPrincipal = claimsPrincipal;

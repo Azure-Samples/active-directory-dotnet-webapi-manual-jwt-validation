@@ -76,17 +76,19 @@ namespace TodoListClient
             //
             // As the application starts, try to get an access token without prompting the user.  If one exists, populate the To Do list.  If not, continue.
             //
-            authContext = new AuthenticationContext(authority, new CredManCache());
+            authContext = new AuthenticationContext(authority, new FileCache());
             AuthenticationResult result = null;
             try
             {
+
+                //result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri);
                 result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri, PromptBehavior.Never);
 
                 // A valid token is in the cache - get the To Do list.
                 SignInButton.Content = "Clear Cache";
                 GetTodoList();
             }
-            catch (ActiveDirectoryAuthenticationException ex)
+            catch (AdalException ex)
             {
                 if (ex.ErrorCode == "user_interaction_required")
                 {
@@ -117,7 +119,7 @@ namespace TodoListClient
             {
                 result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri, PromptBehavior.Never);
             }
-            catch (ActiveDirectoryAuthenticationException ex)
+            catch (AdalException ex)
             {
                 // There is no access token in the cache, so prompt the user to sign-in.
                 if (ex.ErrorCode == "user_interaction_required")
@@ -179,7 +181,7 @@ namespace TodoListClient
             {
                 result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri, PromptBehavior.Never);
             }
-            catch (ActiveDirectoryAuthenticationException ex)
+            catch (AdalException ex)
             {
                 // There is no access token in the cache, so prompt the user to sign-in.
                 if (ex.ErrorCode == "user_interaction_required")
@@ -208,7 +210,7 @@ namespace TodoListClient
 
             // Once the token has been returned by ADAL, add it to the http authorization header, before making the call to access the To Do service.
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
-            
+
             // Forms encode Todo item, to POST to the todo list web api.
             HttpContent content = new FormUrlEncodedContent(new[] { new KeyValuePair<string, string>("Title", TodoText.Text) });
 
@@ -232,7 +234,7 @@ namespace TodoListClient
             if (SignInButton.Content.ToString() == "Clear Cache")
             {
                 TodoList.ItemsSource = string.Empty;
-                authContext.TokenCacheStore.Clear();
+                authContext.TokenCache.Clear();
                 // Also clear cookies from the browser control.
                 ClearCookies();
                 SignInButton.Content = "Sign In";
@@ -249,7 +251,7 @@ namespace TodoListClient
                 SignInButton.Content = "Clear Cache";
                 GetTodoList();
             }
-            catch (ActiveDirectoryAuthenticationException ex)
+            catch (AdalException ex)
             {
                 if (ex.ErrorCode == "authentication_canceled")
                 {
