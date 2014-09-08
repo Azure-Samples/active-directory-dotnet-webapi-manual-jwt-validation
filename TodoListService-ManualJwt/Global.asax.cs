@@ -38,6 +38,7 @@ using System.Xml;
 using System.Security.Cryptography.X509Certificates;
 using System.Globalization;
 using System.Configuration;
+using Microsoft.IdentityModel.Protocols;
 
 namespace TodoListService_ManualJwt
 {
@@ -68,21 +69,21 @@ namespace TodoListService_ManualJwt
         string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
 
         static string _issuer = string.Empty;
-        static List<X509SecurityToken> _signingTokens = null;
+        static List<SecurityToken> _signingTokens = null;
         static DateTime _stsMetadataRetrievalTime = DateTime.MinValue;
         static string scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
         
         //
         // SendAsync checks that incoming requests have a valid access token, and sets the current user identity using that access token.
         //
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             string authHeader = null;
             string jwtToken = null;
             string issuer;
-            string stsMetadataAddress = string.Format("{0}/federationmetadata/2007-06/federationmetadata.xml", authority);
+            string stsDiscoveryEndpoint = string.Format("{0}/.well-known/openid-configuration", authority);
 
-            List<X509SecurityToken> signingTokens;
+            List<SecurityToken> signingTokens;
 
             // The header is of the form "bearer <accesstoken>", so extract to the right of the whitespace to find the access token.
             authHeader = HttpContext.Current.Request.Headers["Authorization"];
@@ -98,24 +99,34 @@ namespace TodoListService_ManualJwt
             if (jwtToken == null)
             {
                 HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
-                return Task.FromResult(response);
+                return response;
             }
 
             try
             {
-                // Get tenant information that's used to validate incoming jwt tokens
-                GetTenantInformation(stsMetadataAddress, out issuer, out signingTokens);
+                // The issuer and signingTokens are cached for 24 hours. They are updated if any of the conditions in the if condition is true.            
+                if (DateTime.UtcNow.Subtract(_stsMetadataRetrievalTime).TotalHours > 24
+                    || string.IsNullOrEmpty(_issuer)
+                    || _signingTokens == null)
+                {
+                    // Get tenant information that's used to validate incoming jwt tokens
+                    ConfigurationManager<OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint);
+                    OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync();
+                    _issuer = config.Issuer;
+                    _signingTokens = config.SigningTokens.ToList();
+                    
+                    _stsMetadataRetrievalTime = DateTime.UtcNow;
+                }
+
+                issuer = _issuer;
+                signingTokens = _signingTokens;
             }
             catch (Exception)
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+                return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
 
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler()
-            {
-                // Disable certificate validation.  Certificate validation is not necessary since the AAD signing certificate is a self-signed certificate.
-                // TODO: CertificateValidator = X509CertificateValidator.None
-            };
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
 
             TokenValidationParameters validationParameters = new TokenValidationParameters
             {
@@ -144,19 +155,19 @@ namespace TodoListService_ManualJwt
                 if (ClaimsPrincipal.Current.FindFirst(scopeClaimType) != null && ClaimsPrincipal.Current.FindFirst(scopeClaimType).Value != "user_impersonation")
                 {
                     HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Forbidden);
-                    return Task.FromResult(response);
+                    return response;
                 }
 
-                return base.SendAsync(request, cancellationToken);
+                return await base.SendAsync(request, cancellationToken);
             }
             catch (SecurityTokenValidationException)
             {
                 HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
-                return Task.FromResult(response);
+                return response;
             }
             catch (Exception)
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+                return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
         }
 
@@ -172,67 +183,6 @@ namespace TodoListService_ManualJwt
             response.Headers.WwwAuthenticate.Add(authenticateHeader);
 
             return response;
-        }
-
-        /// <summary>
-        /// Parses the federation metadata document and gets issuer Name and Signing Certificates
-        /// </summary>
-        /// <param name="metadataAddress">URL of the Federation Metadata document</param>
-        /// <param name="issuer">Issuer Name</param>
-        /// <param name="signingTokens">Signing Certificates in the form of X509SecurityToken</param>
-        static void GetTenantInformation(string metadataAddress, out string issuer, out List<X509SecurityToken> signingTokens)
-        {
-            signingTokens = new List<X509SecurityToken>();
-
-            // The issuer and signingTokens are cached for 24 hours. They are updated if any of the conditions in the if condition is true.            
-            if (DateTime.UtcNow.Subtract(_stsMetadataRetrievalTime).TotalHours > 24
-                || string.IsNullOrEmpty(_issuer)
-                || _signingTokens == null)
-            {
-                MetadataSerializer serializer = new MetadataSerializer()
-                    {
-                        // Disable certificate validation.  Certificate validation is not necessary since the AAD signing certificate is a self-signed certificate.
-                        CertificateValidationMode = X509CertificateValidationMode.None
-                    };
-                MetadataBase metadata = serializer.ReadMetadata(XmlReader.Create(metadataAddress));
-
-                EntityDescriptor entityDescriptor = (EntityDescriptor)metadata;
-
-                // Get the issuer name.
-                if (!string.IsNullOrWhiteSpace(entityDescriptor.EntityId.Id))
-                {
-                    _issuer = entityDescriptor.EntityId.Id;
-                }
-
-                // Get the signing certs.
-                _signingTokens = ReadSigningCertsFromMetadata(entityDescriptor);
-
-                _stsMetadataRetrievalTime = DateTime.UtcNow;
-            }
-
-            issuer = _issuer;
-            signingTokens = _signingTokens;
-        }
-
-        static List<X509SecurityToken> ReadSigningCertsFromMetadata(EntityDescriptor entityDescriptor)
-        {
-            List<X509SecurityToken> stsSigningTokens = new List<X509SecurityToken>();
-
-            SecurityTokenServiceDescriptor stsd = entityDescriptor.RoleDescriptors.OfType<SecurityTokenServiceDescriptor>().First();
-
-            if (stsd != null)
-            {
-                IEnumerable<X509RawDataKeyIdentifierClause> x509DataClauses = stsd.Keys.Where(key => key.KeyInfo != null && (key.Use == KeyType.Signing || key.Use == KeyType.Unspecified)).
-                                                             Select(key => key.KeyInfo.OfType<X509RawDataKeyIdentifierClause>().First());
-
-                stsSigningTokens.AddRange(x509DataClauses.Select(token => new X509SecurityToken(new X509Certificate2(token.GetX509RawData()))));
-            }
-            else
-            {
-                throw new InvalidOperationException("There is no RoleDescriptor of type SecurityTokenServiceType in the metadata");
-            }
-
-            return stsSigningTokens;
         }
     }
 }
