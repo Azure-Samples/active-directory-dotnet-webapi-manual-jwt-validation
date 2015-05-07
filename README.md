@@ -1,7 +1,9 @@
 WebAPI-ManuallyValidateJwt-DotNet
 =================================
 
-This sample demonstrates how to manually process a JWT access token in a web API using the JSON Web Token Handler For the Microsoft .Net Framework 4.5.  This sample is equivalent to the NativeClient-DotNet sample, except in the TodoListService instead of using OWIN middleware to process the token, the token is processed manually in application code.  The client is unchanged from the NativeClient-DotNet sample.
+This sample demonstrates how to manually process a JWT access token in a web API using the JSON Web Token Handler For the Microsoft .Net Framework 4.5.  This sample is equivalent to the NativeClient-DotNet sample, except in the TodoListService instead of using OWIN middleware to process the token, the token is processed manually in application code. The client is unchanged from the NativeClient-DotNet sample.
+
+The manual JWT validation occurs in the `TokenValidationHandler` implementation in the `Global.aspx.cs` file in the TodoListService-ManualJwt project.  Examples of the valid token being used in application can be found in `TodoListService-ManualJwt/Controllers/ValuesController.cs`.
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
