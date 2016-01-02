@@ -73,6 +73,11 @@ namespace TodoListClient
         {
             InitializeComponent();
 
+            InitializeLogin();
+        }
+
+        private async void InitializeLogin()
+        {
             //
             // As the application starts, try to get an access token without prompting the user.  If one exists, populate the To Do list.  If not, continue.
             //
@@ -82,7 +87,7 @@ namespace TodoListClient
             {
 
                 //result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri);
-                result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri, PromptBehavior.Never);
+                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Never));
 
                 // A valid token is in the cache - get the To Do list.
                 SignInButton.Content = "Clear Cache";
@@ -106,7 +111,6 @@ namespace TodoListClient
                 }
                 return;
             }
-
         }
 
         private async void GetTodoList()
@@ -117,7 +121,7 @@ namespace TodoListClient
             AuthenticationResult result = null;
             try
             {
-                result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri, PromptBehavior.Never);
+                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Never));
             }
             catch (AdalException ex)
             {
@@ -179,7 +183,7 @@ namespace TodoListClient
             AuthenticationResult result = null;
             try
             {
-                result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri, PromptBehavior.Never);
+                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Never));
             }
             catch (AdalException ex)
             {
@@ -228,7 +232,7 @@ namespace TodoListClient
             }
         }
 
-        private void SignIn(object sender = null, RoutedEventArgs args = null)
+        private async void SignIn(object sender = null, RoutedEventArgs args = null)
         {
             // If there is already a token in the cache, clear the cache and update the label on the button.
             if (SignInButton.Content.ToString() == "Clear Cache")
@@ -247,7 +251,7 @@ namespace TodoListClient
             AuthenticationResult result = null;
             try
             {
-                result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri, PromptBehavior.Always);
+                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Always));
                 SignInButton.Content = "Clear Cache";
                 GetTodoList();
             }
