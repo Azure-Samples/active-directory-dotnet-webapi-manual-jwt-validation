@@ -17,8 +17,9 @@ For more information about how the protocols work in this scenario and other sce
 To run this sample you will need:
 - Visual Studio 2013
 - An Internet connection
-- An Azure Active Directory (Azure AD) tenant. For more information on how to get an Azure AD tenant, please see [How to get an Azure AD tenant](https://azure.microsoft.com/en-us/documentation/articles/active-directory-howto-tenant/) 
-- A user account in your Azure AD tenant. This sample will not work with a Microsoft account, so if you signed in to the Azure portal with a Microsoft account and have never created a user account in your directory before, you need to do that now.
+- An Azure subscription (a free trial is sufficient)
+
+Every Azure subscription has an associated Azure Active Directory tenant.  If you don't already have an Azure subscription, you can get a free subscription by signing up at [https://azure.microsoft.com](https://azure.microsoft.com).  All of the Azure AD features used by this sample are available free of charge.
 
 ### Step 1:  Clone or download this repository
 
@@ -26,32 +27,43 @@ From your shell or command line:
 
 `git clone https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation.git`
 
-### Step 2:  Register the sample with your Azure Active Directory tenant
+### Step 2:  Create a user account in your Azure Active Directory tenant
+
+If you already have a user account in your Azure Active Directory tenant, you can skip to the next step.  This sample will not work with a Microsoft account, so if you signed in to the Azure portal with a Microsoft account and have never created a user account in your directory before, you need to do that now.  If you create an account and want to use it to sign-in to the Azure portal, don't forget to add the user account as a co-administrator of your Azure subscription.
+
+### Step 3:  Register the sample with your Azure Active Directory tenant
 
 There are two projects in this sample.  Each needs to be separately registered in your Azure AD tenant.
 
 #### Register the TodoListService-ManualJwt web API
 
-1. Sign in to the [Azure portal](https://portal.azure.com).
-2. On the top bar, click on your account and under the **Directory** list, choose the Active Directory tenant where you wish to register your application.
-3. Click on **More Services** in the left hand nav, and choose **Azure Active Directory**.
-4. Click on **App registrations** and choose **Add**.
-5. Enter a friendly name for the application, for example 'TodoListService-ManualJwt' and select 'Web Application and/or Web API' as the Application Type. For the sign-on URL, enter the base URL for the sample, which is by default `https://localhost:44324`. Click on **Create** to create the application.
-6. While still in the Azure portal, choose your application, click on **Settings** and choose **Properties**.
-7. Find the Application ID value and copy it to the clipboard.
+1. Sign in to the [Azure management portal](https://manage.windowsazure.com).
+2. Click on Active Directory in the left hand nav.
+3. Click the directory tenant where you wish to register the sample application.
+4. Click the Applications tab.
+5. In the drawer, click Add.
+6. Click "Add an application my organization is developing".
+7. Enter a friendly name for the application, for example "TodoListService-ManualJwt", select "Web Application and/or Web API", and click next.
+8. For the sign-on URL, enter the base URL for the sample, which is by default `https://localhost:44324/`.
+9. For the App ID URI, enter `https://<your_tenant_name>/TodoListService-ManualJwt`, replacing `<your_tenant_name>` with the name of your Azure AD tenant.  Click OK to complete the registration.
+10. While still in the Azure portal, click the Configure tab of your application.
+11. Find the Client ID value and copy it aside, you will need this later when configuring your application.
 
 #### Register the TodoListClient app
 
-1. Sign in to the [Azure portal](https://portal.azure.com).
-2. On the top bar, click on your account and under the **Directory** list, choose the Active Directory tenant where you wish to register your application.
-3. Click on **More Services** in the left hand nav, and choose **Azure Active Directory**.
-4. Click on **App registrations** and choose **Add**.
-5. Enter a friendly name for the application, for example 'TodoListClient-DotNet' and select 'Native' as the Application Type. For the redirect URI, enter `https://TodoListClient`. Click on **Create** to create the application.
-6. While still in the Azure portal, choose your application, click on **Settings** and choose **Properties**.
-7. Find the Application ID value and copy it to the clipboard.
-8. Configure Permissions for your application - in the Settings menu, choose the 'Required permissions' section, click on **Add**, then **Select an API**, and type 'TodoListService' in the textbox. Then, click on  **Select Permissions** and select 'Access TodoListService'.
+1. Sign in to the [Azure management portal](https://manage.windowsazure.com).
+2. Click on Active Directory in the left hand nav.
+3. Click the directory tenant where you wish to register the sample application.
+4. Click the Applications tab.
+5. In the drawer, click Add.
+6. Click "Add an application my organization is developing".
+7. Enter a friendly name for the application, for example "TodoListClient-DotNet", select "Native Client Application", and click next.
+8. For the Redirect URI, enter `http://TodoListClient`.  Click finish.
+9. Click the Configure tab of the application.
+10. Find the Client ID value and copy it aside, you will need this later when configuring your application.
+11. In "Permissions to Other Applications", click "Add Application."  Select "Other" in the "Show" dropdown, and click the upper check mark.  Locate & click on the TodoListService, and click the bottom check mark to add the application.  Select "Access TodoListService" from the "Delegated Permissions" dropdown, and save the configuration.
 
-### Step 3:  Configure the sample to use your Azure AD tenant
+### Step 4:  Configure the sample to use your Azure AD tenant
 
 #### Configure the TodoListService-ManualJwt project
 
@@ -69,7 +81,7 @@ There are two projects in this sample.  Each needs to be separately registered i
 5. Find the app key `todo:TodoListResourceId` and replace the value with the App ID URI of the TodoListService-ManualJwt project, for example `https://<your_tenant_name>/TodoListService-ManualJwt`
 6. Find the app key `todo:TodoListBaseAddress` and replace the value with the base address of the TodoListService-ManualJwt project, for example `https://localhost:44324`.
 
-### Step 4:  Trust the IIS Express SSL certificate
+### Step 5:  Trust the IIS Express SSL certificate
 
 Since the web API is SSL protected, the client of the API (the web app) will refuse the SSL connection to the web API unless it trusts the API's SSL certificate.  Use the following steps in Windows Powershell to trust the IIS Express SSL certificate.  You only need to do this once.  If you fail to do this step, calls to the TodoListService-ManualJwt web API will always throw an unhandled exception where the inner exception message is:
 
@@ -105,7 +117,7 @@ You can verify the certificate is in the Trusted Root store by running this comm
 
 `PS C:\windows\system32> dir Cert:\LocalMachine\Root`
 
-### Step 5:  Run the sample
+### Step 6:  Run the sample
 
 Clean the solution, rebuild the solution, and run it.  You might want to go into the solution properties and set both projects as startup projects, with the service project starting first.
 
