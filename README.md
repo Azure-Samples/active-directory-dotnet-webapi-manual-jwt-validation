@@ -128,7 +128,7 @@ First, in Visual Studio 2013 create an empty solution to host the  projects.  Th
 1. In the solution, create a new ASP.Net MVC web API project called TodoListService-ManualJwt and while creating the project, ensure Authentication is set to No Authentication.
 2. Set SSL Enabled to be True.  Note the SSL URL.
 3. In the project properties, Web properties, set the Project Url to be the SSL URL.
-4. Add the (stable) JSON Web Token Handler For the Microsoft .Net Framework 4.5 NuGet, System.IdentityModel.Tokens.Jwt, version 3.0.2 (or higher) to the project.
+4. Add the latest stable JSON Web Token Handler For the Microsoft .Net Framework 4.5 NuGet, System.IdentityModel.Tokens.Jwt, version 4.x to the project.  Note:  Version 5.x will not work with this sample, as it requires .Net Framework 5.x.
 5. Add an assembly reference to `System.IdentityModel`.
 6. In the `Models` folder add a new class called `TodoItem.cs`.  Copy the implementation of TodoItem from this sample into the class.
 7. Add a new, empty, Web API 2 controller called `TodoListController`.
