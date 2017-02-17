@@ -78,22 +78,12 @@ namespace TodoListService_ManualJwt
         //
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            string authHeader = null;
+            // Get the jwt bearer token from the authorization header
             string jwtToken = null;
-            string issuer;
-            string stsDiscoveryEndpoint = string.Format("{0}/.well-known/openid-configuration", authority);
-
-            List<SecurityToken> signingTokens;
-
-            // The header is of the form "bearer <accesstoken>", so extract to the right of the whitespace to find the access token.
-            authHeader = HttpContext.Current.Request.Headers["Authorization"];
+            AuthenticationHeaderValue authHeader = request.Headers.Authorization;
             if (authHeader != null)
             {
-                int startIndex = authHeader.LastIndexOf(' ');
-                if (startIndex > 0)
-                {
-                    jwtToken = authHeader.Substring(startIndex).Trim();
-                }
+                jwtToken = authHeader.Parameter;
             }
 
             if (jwtToken == null)
@@ -101,6 +91,9 @@ namespace TodoListService_ManualJwt
                 HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
                 return response;
             }
+
+            string issuer;
+            List<SecurityToken> signingTokens;
 
             try
             {
@@ -110,6 +103,7 @@ namespace TodoListService_ManualJwt
                     || _signingTokens == null)
                 {
                     // Get tenant information that's used to validate incoming jwt tokens
+                    string stsDiscoveryEndpoint = string.Format("{0}/.well-known/openid-configuration", authority);
                     ConfigurationManager<OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint);
                     OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync();
                     _issuer = config.Issuer;
