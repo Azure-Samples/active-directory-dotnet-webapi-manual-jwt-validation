@@ -18,7 +18,7 @@ For more information about how the protocols work in this scenario and other sce
 ## How To Run This Sample
 
 To run this sample you will need:
-- Visual Studio 2013
+- Visual Studio 2017
 - An Internet connection
 - An Azure Active Directory (Azure AD) tenant. For more information on how to get an Azure AD tenant, please see [How to get an Azure AD tenant](https://azure.microsoft.com/en-us/documentation/articles/active-directory-howto-tenant/) 
 - A user account in your Azure AD tenant. This sample will not work with a Microsoft account, so if you signed in to the Azure portal with a Microsoft account and have never created a user account in your directory before, you need to do that now.
@@ -58,7 +58,7 @@ There are two projects in this sample.  Each needs to be separately registered i
 
 #### Configure the TodoListService-ManualJwt project
 
-1. Open the solution in Visual Studio 2013.
+1. Open the solution in Visual Studio.
 2. Open the `web.config` file.
 3. Find the app key `ida:Tenant` and replace the value with your AAD tenant name.
 4. Find the app key `ida:Audience` and replace the value with the App ID URI you registered earlier, for example `https://<your_tenant_name>/TodoListService-ManualJwt`.
@@ -72,59 +72,19 @@ There are two projects in this sample.  Each needs to be separately registered i
 5. Find the app key `todo:TodoListResourceId` and replace the value with the App ID URI of the TodoListService-ManualJwt project, for example `https://<your_tenant_name>/TodoListService-ManualJwt`
 6. Find the app key `todo:TodoListBaseAddress` and replace the value with the base address of the TodoListService-ManualJwt project, for example `https://localhost:44324`.
 
-### Step 4:  Trust the IIS Express SSL certificate
-
-Since the web API is SSL protected, the client of the API (the web app) will refuse the SSL connection to the web API unless it trusts the API's SSL certificate.  Use the following steps in Windows Powershell to trust the IIS Express SSL certificate.  You only need to do this once.  If you fail to do this step, calls to the TodoListService-ManualJwt web API will always throw an unhandled exception where the inner exception message is:
-
-"The underlying connection was closed: Could not establish trust relationship for the SSL/TLS secure channel."
-
-To configure your computer to trust the IIS Express SSL certificate, begin by opening a Windows Powershell command window as Administrator.
-
-Query your personal certificate store to find the thumbprint of the certificate for `CN=localhost`:
-
-```
-PS C:\windows\system32> dir Cert:\LocalMachine\My
-
-
-    Directory: Microsoft.PowerShell.Security\Certificate::LocalMachine\My
-
-
-Thumbprint                                Subject
-----------                                -------
-C24798908DA71693C1053F42A462327543B38042  CN=localhost
-```
-
-Next, add the certificate to the Trusted Root store:
-
-```
-PS C:\windows\system32> $cert = (get-item cert:\LocalMachine\My\C24798908DA71693C1053F42A462327543B38042)
-PS C:\windows\system32> $store = (get-item cert:\Localmachine\Root)
-PS C:\windows\system32> $store.Open("ReadWrite")
-PS C:\windows\system32> $store.Add($cert)
-PS C:\windows\system32> $store.Close()
-```
-
-You can verify the certificate is in the Trusted Root store by running this command:
-
-`PS C:\windows\system32> dir Cert:\LocalMachine\Root`
-
-### Step 5:  Run the sample
+### Step 4:  Run the sample
 
 Clean the solution, rebuild the solution, and run it.  You might want to go into the solution properties and set both projects as startup projects, with the service project starting first.
 
 Explore the sample by signing in, adding items to the To Do list, removing the user account, and starting again.  Notice that if you stop the application without removing the user account, the next time you run the application you won't be prompted to sign-in again - that is the sample implements a persistent cache for ADAL, and remembers the tokens from the previous run.
 
-## How To Deploy This Sample to Azure
-
-Coming soon.
-
 ## About The Code
 
-Coming soon.
+The manual JWT validation occurs in the [TokenValidationHandler](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/master/TodoListService-ManualJwt/Global.asax.cs#L58) implementation in the `Global.aspx.cs` file in the TodoListService-ManualJwt project. 
 
 ## How To Recreate This Sample
 
-First, in Visual Studio 2013 create an empty solution to host the  projects.  Then, follow these steps to create each project.
+First, in Visual Studio 2017 create an empty solution to host the  projects.  Then, follow these steps to create each project.
 
 ### Creating the TodoListService-ManualJwt Project
 
