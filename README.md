@@ -3,6 +3,7 @@ services: active-directory
 platforms: dotnet
 author: dstrockis
 ---
+![](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
 
 # Manually validating a JWT access token in a web API
 
