@@ -51,6 +51,8 @@ From your shell or command line:
 
 `git clone https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation.git`
 
+> Given that the name of the sample is pretty long, and so are the name of the referenced NuGet pacakges, you might want to clone it in a folder close to the root of your hard drive, to avoid file size limitations on Windows.
+
 ### Step 2:  Register the sample with your Azure Active Directory tenant
 There are two options:
  - Option 1: you run the `Configure.ps1` PowerShell script which creates two applications in the Azure Active Directory, (one for the client and one for the service), and then updates the configuration files in the Visual Studio projects to point to those two newly created apps. Instructions for these option are provided in the [Configure.ps1](./AppCreationScripts/Configure.ps1) file
