@@ -10,26 +10,27 @@ endpoint: AAD V1
 ![](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
 
 # Manually validating a JWT access token in a web API
-# Token Validation
-A token represent the outcome of an authentication operation with some artifact that can be unambiguously tied to the Identity Provider that performed the authentication, without relying on any special network infrastructure.
+## About this sample
+This sample demonstrates how to manually process a JWT access token in a web API using the JSON Web Token Handler For the Microsoft .Net Framework 4.5.  This sample is equivalent to the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample, except that, in the ``TodoListService``, instead of using OWIN middleware to process the token, the token is processed manually in application code.  The client, which demonstrates how to acquire a token for this protected API, is unchanged from the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample.
 
-With Azure Active Directory taking the full  responsibility of verifying user's raw credentials, the token receiver's responsibility shifts from verifying raw credentials to verifying that their caller did indeed go through your identity provider of choice and successfully authenticated. The identity provider represents successful authentication operations by issuing a token, hence the job now becomes to validate that token. 
+## Scenario: protecting a Web API - acquiring a token for the protected Web API 
+When you want to protect a Web API, you request your clients to get a [Security token](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-dev-glossary#security-token) for your API, and you validate it. Usually, for ASP.NET applications this validation is delegated to the OWIN middleware, but you can also validate it yourself, leveraging the ``System.IdentityModel.Tokens.Jwt`` library.
 
-# Validate the claims
+### Token Validation
+A token represents the outcome of an authentication operation with some artifact that can be unambiguously tied to the Identity Provider that performed the authentication, without relying on any special network infrastructure.
+
+With Azure Active Directory taking the full responsibility of verifying user's raw credentials, the token receiver's responsibility shifts from verifying raw credentials to verifying that their caller did indeed go through your identity provider of choice and successfully authenticated. The identity provider represents successful authentication operations by issuing a token, hence the job now becomes to validate that token. 
+
+### Validating the claims
 When an application receives an ID token upon user sign-in, it should also perform a few checks against the claims in the ID token. These include but are not limited to:
 - **audience** claim, to verify that the ID token was intended to be given to your application
 - **not before** and "expiration time" claims, to verify that the ID token has not expired
 - **issuer** claim, to verify that the token was issued to your app by the v2.0 endpoint
 - **nonce**, as a token replay attack mitigation
 
-Though developers are advised to use standard library methods like [JwtSecurityTokenHandler.ValidateToken Method (JwtSecurityToken)](https://msdn.microsoft.com/en-us/library/dn451163(v=vs.114).aspx) to do most of the aforementioned heavy lifting. Developers can further extend the validation process by making decisions based on claims recieved in the token. For example, multi-tenant applications can extend the standard validation by inspecting value of the "tid" claim against a set of pre-selected tenants to ensure they only honor token from tenants of their choice. Details on the claims provided in JWT tokens is listed in the [Azure AD token reference](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-token-and-claims). 
+You are advised to use standard library methods like [JwtSecurityTokenHandler.ValidateToken Method (JwtSecurityToken)](https://msdn.microsoft.com/en-us/library/dn451163(v=vs.114).aspx) to do most of the aforementioned heavy lifting. You can further extend the validation process by making decisions based on claims recieved in the token. For example, multi-tenant applications can extend the standard validation by inspecting value of the ``tid`` claim (Tenant Id) against a set of pre-selected tenants to ensure they only honor token from tenants of their choice. Details on the claims provided in JWT tokens is listed in the [Azure AD token reference](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-token-and-claims). When you debug your application and want to understand the claims held by the token you might find it useful to use the [JWT token inspector](https://jwt.ms) tool.
 
-## About this sample
-This sample demonstrates how to manually process a JWT access token in a web API using the JSON Web Token Handler For the Microsoft .Net Framework 4.5.  This sample is equivalent to the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample, except in the TodoListService instead of using OWIN middleware to process the token, the token is processed manually in application code.  The client is unchanged from the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample.
-
-The manual JWT validation occurs in the `TokenValidationHandler` implementation in the `Global.aspx.cs` file in the TodoListService-ManualJwt project. 
 ### More information
-
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
 > Looking for previous versions of this code sample? Check out the tags on the [releases](../../releases) GitHub page.
@@ -37,9 +38,6 @@ For more information about how the protocols work in this scenario and other sce
 ## How To Run This Sample
 
 >[!Note] If you want to run this sample on **Azure Government**, navigate to the "Azure Government Deviations" section at the bottom of this page.
->
->
->
 
 To run this sample you will need:
 - [Visual Studio 2017](https://aka.ms/vsdownload)
@@ -55,8 +53,8 @@ From your shell or command line:
 
 ### Step 2:  Register the sample with your Azure Active Directory tenant
 There are two options:
- - Option 1: you run the `Configure.ps1` PowerShell script which creates two applications in the Azure Active Directory, (one for the client and one for the service), and then updates the configuration files in the Visual Studio projects to point to those two newly created apps.
- - Option 2: you do the same manually.
+ - Option 1: you run the `Configure.ps1` PowerShell script which creates two applications in the Azure Active Directory, (one for the client and one for the service), and then updates the configuration files in the Visual Studio projects to point to those two newly created apps. Instructions for these option are provided in the [Configure.ps1](./AppCreationScripts/Configure.ps1) file
+ - Option 2: you do the same manually through the Azure portal and modifying the code. This is what is explained below:
 
 There are two projects in this sample.  Each needs to be separately registered in your Azure AD tenant.
 
@@ -102,7 +100,7 @@ There are two projects in this sample.  Each needs to be separately registered i
 
 ### Step 4:  Run the sample
 
-Clean the solution, rebuild the solution, and run it.  You might want to go into the solution properties and set both projects as startup projects, with the service project starting first.
+Clean the solution, rebuild the solution, and run it. You might want to go into the solution properties and set both projects as startup projects, with the service project starting first.
 
 Explore the sample by signing in, adding items to the To Do list, removing the user account, and starting again.  Notice that if you stop the application without removing the user account, the next time you run the application you won't be prompted to sign-in again - that is the sample implements a persistent cache for ADAL, and remembers the tokens from the previous run.
 
@@ -119,12 +117,15 @@ First, in Visual Studio 2017 create an empty solution to host the projects.  The
 1. In Visual Studio , create a new `Visual C#` `ASP.NET Web Application (.NET Framework)`. Choose `Web Api` in the next screen. Leave the project's chosen authentication mode as the default, i.e. `No Authentication`".
 2. Set SSL Enabled to be True. Note the SSL URL.
 3. In the project properties, Web properties, set the Project Url to be the SSL URL.
-4. Add the latest stable JSON Web Token Handler For the Microsoft .Net Framework 4.5 NuGet, System.IdentityModel.Tokens.Jwt, version 4.x to the project.  Note:  Version 5.x will not work with this sample, as it requires .Net Framework 5.x.
+4. Add the latest stable JSON Web Token Handler For the Microsoft .Net Framework 4.5 NuGet, System.IdentityModel.Tokens.Jwt, version 4.x to the project.  Note:  Version 5.x will not work with this sample.
 5. Add an assembly reference to `System.IdentityModel`.
 6. In the `Models` folder add a new class called `TodoItem.cs`.  Copy the implementation of TodoItem from this sample into the class.
 7. Add a new, empty, Web API 2 controller called `TodoListController`.
 8. Copy the implementation of the TodoListController from this sample into the controller.
-9. Open Global.asax, and copy the implementation from this sample into the controller.  Note that a single line is added at the end of Application_Start(), `GlobalConfiguration.Configuration.MessageHandlers.Add(new TokenValidationHandler());`.
+9. Open Global.asax, and copy the implementation from this sample into the controller.  Note that a single line is added at the end of `Application_Start()`, 
+      ```C#
+      GlobalConfiguration.Configuration.MessageHandlers.Add(new TokenValidationHandler());
+      ```
 10. In `web.config` create keys for `ida:AADInstance`, `ida:Tenant`, and `ida:Audience` and set them accordingly.  For the public Azure cloud, the value of `ida:AADInstance` is `https://login.microsoftonline.com/{0}`.
 
 ### Creating the TodoListClient Project
@@ -149,11 +150,12 @@ In order to run this sample on Azure Government you can follow through the steps
 - Step 3: 
     - Before configuring the sample, you must make sure your [Visual Studio is connected to Azure Government](https://docs.microsoft.com/azure/azure-government/documentation-government-get-started-connect-with-vs).     
     - Navigate to the Web.config file. Replace the `ida:AADInstance` property in the Azure AD section with `https://login.microsoftonline.us/`. 
-    
 Once those changes have been accounted for, you should be able to run this sample on Azure Government.  
 
 ## More information
-For more information see ADAL.NET's conceptual documentation:
+For more information on how to acquire a token in the client application, see ADAL.NET's conceptual documentation:
 - [Recommanded pattern to acquire a token](https://github.com/AzureAD/azure-activedirectory-library-for-dotnet/wiki/AcquireTokenSilentAsync-using-a-cached-token#recommended-pattern-to-acquire-a-token)
+
+For more information about token validation, see:
 - [JwtSecurityTokenHandler.ValidateToken Method (JwtSecurityToken)](https://msdn.microsoft.com/en-us/library/dn451163(v=vs.114).aspx)
 - [Principles of Token Validation](http://www.cloudidentity.com/blog/2014/03/03/principles-of-token-validation/)

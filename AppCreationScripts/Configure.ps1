@@ -1,3 +1,34 @@
+<#
+ This script creates the Azure AD applications needed for this sample and updates the configuration files
+ for the visual Studio projects from the data in the Azure AD applications.
+
+ Before running this script you need to install the AzureAD cmdlets as an administrator. 
+ For this:
+ 1) Run Powershell as an administrator
+ 2) in the PowerShell window, type: Install-Module AzureAD
+
+ There are three ways to run this script
+ Option1 (interactive)
+ ---------------------
+ Just run . .\Configue.ps1, and you will be prompted to sign-in (email address, password, and if needed MFA). 
+ The script will be run as the signed-in user and will use the tenant in which the user is defined.
+
+ Option 2 (Interactive, but create apps in a specified tenant)
+ -------------------------------------------------------------
+ If you want to create the apps in a specific tenant, before you run this script
+ - In the Azure portal (https://portal.azure.com), choose your active directory tenant, then go to the Properties of the tenant and copy
+   the DirectoryID. This is what we'll use in this script for the tenant ID
+ - run . .\Configue.ps1 -TenantId [place here the GUID representing the tenant ID]
+
+ Option 2 (non-interactive)
+ ---------------------------
+ This supposes that you know the credentials of the user under which identity you want to create
+ the applications. Here is an example of script you'd want to run in a PowerShell Window
+   $secpasswd = ConvertTo-SecureString "[Password here]" -AsPlainText -Force
+   $mycreds = New-Object System.Management.Automation.PSCredential ("[login@tenantName here]", $secpasswd)
+   . .\Configure.ps1 -Credential $mycreds
+#>
+
 # Adds the requiredAccesses (expressed as a pipe separated string) to the requiredAccess structure
 # The exposed permissions are in the $exposedPermissions collection, and the type of permission (Scope | Role) is 
 # described in $permissionType
@@ -45,12 +76,13 @@ Function GetRequiredPermissions([string] $applicationDisplayName, [string] $requ
     }
     
     # $sp.AppRoles | Select Id,AdminConsentDisplayName,Value: To see the list of all the Application permissions for the application
-    if ($requiredDelegatedPermissions)
+    if ($requiredApplicationPermissions)
     {
         AddResourcePermission $requiredAccess -exposedPermissions $sp.AppRoles -requiredAccesses $requiredApplicationPermissions -permissionType "Role"
     }
     return $requiredAccess
 }
+
 
 # Replace the value of an appsettings of a given key in an XML App.Config file.
 Function ReplaceSetting([string] $configFilePath, [string] $key, [string] $newValue)
@@ -68,6 +100,7 @@ Function ReplaceSetting([string] $configFilePath, [string] $key, [string] $newVa
     }
    $content.save($configFilePath)
 }
+
 
 Function ConfigureApplications
 {
