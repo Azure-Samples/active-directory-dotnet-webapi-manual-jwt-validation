@@ -172,6 +172,14 @@ Function ConfigureApplications
    Set-AzureADApplication -ObjectId $clientAadApplication.ObjectId -RequiredResourceAccess $requiredResourcesAccess
    Write-Host "Granted."
 
+    # Configure known client applications for service 
+	Write-Host "Configure known client applications for the 'service'"
+	$knowApplications = New-Object System.Collections.Generic.List[System.String]
+	$knowApplications.Add($clientAadApplication.AppId)
+    Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -KnownClientApplications $knowApplications
+	Write-Host "Configured."
+
+
    # Update config file for 'service'
    $configFile = $pwd.Path + "\..\TodoListService-ManualJwt\Web.Config"
    Write-Host "Updating the sample code ($configFile)"
