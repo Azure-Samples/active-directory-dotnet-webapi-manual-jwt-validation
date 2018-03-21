@@ -4,7 +4,7 @@ platforms: dotnet
 author: jmprieur
 level: 300
 client: .NET Framework 4.5 WPF 
-service: .NET Framework 4.5 web api
+service: .NET Framework 4.5 Web Api
 endpoint: AAD V1
 ---
 ![](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
@@ -12,6 +12,8 @@ endpoint: AAD V1
 # Manually validating a JWT access token in a web API
 ## About this sample
 This sample demonstrates how to manually process a JWT access token in a web API using the JSON Web Token Handler For the Microsoft .Net Framework 4.5.  This sample is equivalent to the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample, except that, in the ``TodoListService``, instead of using OWIN middleware to process the token, the token is processed manually in application code.  The client, which demonstrates how to acquire a token for this protected API, is unchanged from the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample.
+
+![Topology](./ReadmeFiles/Topology.png)
 
 ## Scenario: protecting a Web API - acquiring a token for the protected Web API 
 When you want to protect a Web API, you request your clients to get a [Security token](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-dev-glossary#security-token) for your API, and you validate it. Usually, for ASP.NET applications this validation is delegated to the OWIN middleware, but you can also validate it yourself, leveraging the ``System.IdentityModel.Tokens.Jwt`` library.

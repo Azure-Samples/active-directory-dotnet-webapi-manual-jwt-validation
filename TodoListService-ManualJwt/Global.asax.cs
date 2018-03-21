@@ -127,7 +127,7 @@ namespace TodoListService_ManualJwt
                 ValidAudience = audience,
                 ValidIssuer = issuer,
                 IssuerSigningTokens = signingTokens,
-                CertificateValidator = X509CertificateValidator.None
+                CertificateValidator = X509CertificateValidator.None // Certificate validation does not make sense since AAD's metadata document is signed with a self-signed certificate.
             };
 
             try
