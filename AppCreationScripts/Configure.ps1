@@ -102,6 +102,9 @@ Function ReplaceSetting([string] $configFilePath, [string] $key, [string] $newVa
 }
 
 
+Set-Content -Value "<html><body><table>" -Path createdApps.html
+Add-Content -Value "<thead><tr><th>Application</th><th>AppId</th><th>Url in the Azure portal</th></tr></thead><tbody>" -Path createdApps.html
+
 Function ConfigureApplications
 {
 <#.Description
@@ -152,16 +155,26 @@ Function ConfigureApplications
                                                    -HomePage "https://localhost:44324" `
                                                    -IdentifierUris "https://$tenantName/TodoListService-ManualJwt" `
                                                    -PublicClient $False
-   $serviceServicePrincipal = New-AzureADServicePrincipal -AppId $serviceAadApplication.AppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
+   $currentAppId = $serviceAadApplication.AppId
+   $serviceServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
    Write-Host "Done."
+
+   # URL of the AAD application in the Azure portal
+   $servicePortalUrl = "https://portal.azure.com/#@"+$tenantName+"/blade/Microsoft_AAD_IAM/ApplicationBlade/appId/"+$serviceAadApplication.AppId+"/objectId/"+$serviceAadApplication.ObjectId
+   Add-Content -Value "<tr><td>service</td><td>$currentAppId</td><td><a href='$servicePortalUrl'>TodoListService-ManualJwt</a></td></tr>" -Path createdApps.html
 
    # Create the client AAD application
    Write-Host "Creating the AAD appplication (TodoListClient-ManualJwt)"
    $clientAadApplication = New-AzureADApplication -DisplayName "TodoListClient-ManualJwt" `
                                                   -ReplyUrls "https://TodoListClient-ManualJwt" `
                                                   -PublicClient $True
-   $clientServicePrincipal = New-AzureADServicePrincipal -AppId $clientAadApplication.AppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
+   $currentAppId = $clientAadApplication.AppId
+   $clientServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
    Write-Host "Done."
+
+   # URL of the AAD application in the Azure portal
+   $clientPortalUrl = "https://portal.azure.com/#@"+$tenantName+"/blade/Microsoft_AAD_IAM/ApplicationBlade/appId/"+$clientAadApplication.AppId+"/objectId/"+$clientAadApplication.ObjectId
+   Add-Content -Value "<tr><td>client</td><td>$currentAppId</td><td><a href='$clientPortalUrl'>TodoListClient-ManualJwt</a></td></tr>" -Path createdApps.html
 
    # Add Required Resources Access (from 'client' to 'service')
    Write-Host "Getting access from 'client' to 'service'"
@@ -194,8 +207,11 @@ Function ConfigureApplications
    ReplaceSetting -configFilePath $configFile -key "ida:RedirectUri" -newValue $clientAadApplication.ReplyUrls
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListResourceId" -newValue $serviceAadApplication.IdentifierUris
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListBaseAddress" -newValue $serviceAadApplication.HomePage
+  Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html
+
   }
 }
+
 
 # Run interactively (will ask you for the tenant ID)
 ConfigureApplications -Credential $Credential -tenantId $TenantId
