@@ -1,42 +1,39 @@
-﻿//----------------------------------------------------------------------------------------------
-//    Copyright 2014 Microsoft Corporation
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-//----------------------------------------------------------------------------------------------
+﻿/*
+ The MIT License (MIT)
 
+Copyright (c) 2015 Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-
+using System.Configuration;
 // The following using statements were added for this sample.
 using System.Globalization;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Web.Script.Serialization;
 using System.Runtime.InteropServices;
-using System.Configuration;
+using System.Web.Script.Serialization;
+using System.Windows;
 
 namespace TodoListClient
 {
@@ -69,51 +66,23 @@ namespace TodoListClient
         private HttpClient httpClient = new HttpClient();
         private AuthenticationContext authContext = null;
 
+        // Button strings
+        const string signInString = "Sign In";
+        const string clearCacheString = "Clear Cache";
+
         public MainWindow()
         {
             InitializeComponent();
-
-            InitializeLogin();
-        }
-
-        private async void InitializeLogin()
-        {
-            //
-            // As the application starts, try to get an access token without prompting the user.  If one exists, populate the To Do list.  If not, continue.
-            //
             authContext = new AuthenticationContext(authority, new FileCache());
-            AuthenticationResult result = null;
-            try
-            {
-
-                //result = authContext.AcquireToken(todoListResourceId, clientId, redirectUri);
-                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Never));
-
-                // A valid token is in the cache - get the To Do list.
-                SignInButton.Content = "Clear Cache";
-                GetTodoList();
-            }
-            catch (AdalException ex)
-            {
-                if (ex.ErrorCode == "user_interaction_required")
-                {
-                    // There are no tokens in the cache.  Proceed without calling the To Do list service.
-                }
-                else
-                {
-                    // An unexpected error occurred.
-                    string message = ex.Message;
-                    if (ex.InnerException != null)
-                    {
-                        message += "Inner Exception : " + ex.InnerException.Message;
-                    }
-                    MessageBox.Show(message);
-                }
-                return;
-            }
+            GetTodoList();
         }
 
-        private async void GetTodoList()
+        private void GetTodoList()
+        {
+            GetTodoList(SignInButton.Content.ToString() != clearCacheString);
+        }
+
+        private async void GetTodoList(bool isAppStarting)
         {
             //
             // Get an access token to call the To Do service.
@@ -121,15 +90,20 @@ namespace TodoListClient
             AuthenticationResult result = null;
             try
             {
-                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Never));
+                result = await authContext.AcquireTokenSilentAsync(todoListResourceId, clientId);
+                SignInButton.Content = clearCacheString;
+                this.SetUserName(result.UserInfo);
             }
             catch (AdalException ex)
             {
                 // There is no access token in the cache, so prompt the user to sign-in.
-                if (ex.ErrorCode == "user_interaction_required")
+                if (ex.ErrorCode == AdalError.UserInteractionRequired || ex.ErrorCode == AdalError.FailedToAcquireTokenSilently)
                 {
-                    MessageBox.Show("Please sign in first");
-                    SignInButton.Content = "Sign In";
+                    if (!isAppStarting)
+                    {
+                        MessageBox.Show("Please sign in to view your To-Do list");
+                        SignInButton.Content = signInString;
+                    }
                 }
                 else
                 {
@@ -137,10 +111,12 @@ namespace TodoListClient
                     string message = ex.Message;
                     if (ex.InnerException != null)
                     {
-                        message += "Inner Exception : " + ex.InnerException.Message;
+                        message += "Error Code: " + ex.ErrorCode + "Inner Exception : " + ex.InnerException.Message;
                     }
                     MessageBox.Show(message);
                 }
+
+                UserName.Content = Properties.Resources.UserNotSignedIn;
 
                 return;
             }
@@ -183,15 +159,16 @@ namespace TodoListClient
             AuthenticationResult result = null;
             try
             {
-                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Never));
+                result = await authContext.AcquireTokenSilentAsync(todoListResourceId, clientId);
+                this.SetUserName(result.UserInfo);
             }
             catch (AdalException ex)
             {
                 // There is no access token in the cache, so prompt the user to sign-in.
-                if (ex.ErrorCode == "user_interaction_required")
+                if (ex.ErrorCode == AdalError.UserInteractionRequired || ex.ErrorCode == AdalError.FailedToAcquireTokenSilently)
                 {
                     MessageBox.Show("Please sign in first");
-                    SignInButton.Content = "Sign In";
+                    SignInButton.Content = signInString;
                 }
                 else
                 {
@@ -199,11 +176,13 @@ namespace TodoListClient
                     string message = ex.Message;
                     if (ex.InnerException != null)
                     {
-                        message += "Inner Exception : " + ex.InnerException.Message;
+                        message += "Error Code: " + ex.ErrorCode + "Inner Exception : " + ex.InnerException.Message;
                     }
 
                     MessageBox.Show(message);
                 }
+
+                UserName.Content = Properties.Resources.UserNotSignedIn;
 
                 return;
             }
@@ -235,13 +214,13 @@ namespace TodoListClient
         private async void SignIn(object sender = null, RoutedEventArgs args = null)
         {
             // If there is already a token in the cache, clear the cache and update the label on the button.
-            if (SignInButton.Content.ToString() == "Clear Cache")
+            if (SignInButton.Content.ToString() == clearCacheString)
             {
                 TodoList.ItemsSource = string.Empty;
                 authContext.TokenCache.Clear();
                 // Also clear cookies from the browser control.
-                ClearCookies();
-                SignInButton.Content = "Sign In";
+                SignInButton.Content = signInString;
+                UserName.Content = Properties.Resources.UserNotSignedIn;
                 return;
             }
 
@@ -251,15 +230,18 @@ namespace TodoListClient
             AuthenticationResult result = null;
             try
             {
+                // Force a sign-in (PromptBehavior.Always), as the ADAL web browser might contain cookies for the current user, and using .Auto
+                // would re-sign-in the same user
                 result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Always));
-                SignInButton.Content = "Clear Cache";
+                SignInButton.Content = clearCacheString;
+                SetUserName(result.UserInfo);
                 GetTodoList();
             }
             catch (AdalException ex)
             {
-                if (ex.ErrorCode == "authentication_canceled")
+                if (ex.ErrorCode == "access_denied")
                 {
-                    MessageBox.Show("Sign in was canceled by the user");
+                    // The user canceled sign in, take no action.
                 }
                 else
                 {
@@ -267,26 +249,48 @@ namespace TodoListClient
                     string message = ex.Message;
                     if (ex.InnerException != null)
                     {
-                        message += "Inner Exception : " + ex.InnerException.Message;
+                        message += "Error Code: " + ex.ErrorCode + "Inner Exception : " + ex.InnerException.Message;
                     }
 
                     MessageBox.Show(message);
                 }
+
+                UserName.Content = Properties.Resources.UserNotSignedIn;
 
                 return;
             }
 
         }
 
-        // This function clears cookies from the browser control used by ADAL.
-        private void ClearCookies()
+        // Set user name to text box
+        private void SetUserName(UserInfo userInfo)
         {
-            const int INTERNET_OPTION_END_BROWSER_SESSION = 42;
-            InternetSetOption(IntPtr.Zero, INTERNET_OPTION_END_BROWSER_SESSION, IntPtr.Zero, 0);
+            string userName = null;
+
+            if (userInfo != null)
+            {
+                if (userInfo.GivenName != null && userInfo.FamilyName != null)
+                {
+                    userName = userInfo.GivenName + " " + userInfo.FamilyName;
+                }
+                else if (userInfo.FamilyName != null)
+                {
+                    userName = userInfo.FamilyName;
+                }
+                else if (userInfo.GivenName != null)
+                {
+                    userName = userInfo.GivenName;
+                }
+                else if (userInfo.UniqueId != null)
+                {
+                    userName = userInfo.UniqueId;
+                }
+            }
+
+            if (userName == null)
+                userName = Properties.Resources.UserNotIdentified;
+
+            UserName.Content = userName;
         }
-
-        [DllImport("wininet.dll", SetLastError = true)]
-        private static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int lpdwBufferLength);
-
     }
 }
