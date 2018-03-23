@@ -41,6 +41,10 @@
         {
           "key": "ida:Audience",
           "value": "service.IdentifierUris"
+        },
+        {
+          "key": "ida:ClientId",
+          "value": "service.AppId"
         }
       ]
     },

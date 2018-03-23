@@ -7,9 +7,9 @@ client: .NET Framework 4.5 WPF
 service: .NET Framework 4.5 Web Api
 endpoint: AAD V1
 ---
-![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
-
 # Manually validating a JWT access token in a web API
+
+![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
 
 ## About this sample
 
@@ -96,12 +96,13 @@ here are two projects in this sample. Each needs to be separately registered in 
 2. Open the `web.config` file.
 3. Find the app key `ida:Tenant` and replace the value with your AAD tenant name.
 4. Find the app key `ida:Audience` and replace the value with the App ID URI you registered earlier, for example `https://<your_tenant_name>/TodoListService-ManualJwt`.
+5. Find the app key `ida:ClientId` and replace the value with the **Application ID** (also named Clientid) you copied earlier to the clipboard for this service application.
 
 #### Configure the TodoListClient project
 
 1. Open `app.config`.
 2. Find the app key `ida:Tenant` and replace the value with your AAD tenant name.
-3. Find the app key `ida:ClientId` and replace the value with the Client ID for the TodoListClient from the Azure portal.
+3. Find the app key `ida:ClientId` and replace the value with the Application ID (also named) Client ID for the TodoListClient from the Azure portal.
 4. Find the app key `ida:RedirectUri` and replace the value with the Redirect URI for the TodoListClient from the Azure portal, for example `https://TodoListClient`.
 5. Find the app key `todo:TodoListResourceId` and replace the value with the App ID URI of the TodoListService-ManualJwt project, for example `https://<your_tenant_name>/TodoListService-ManualJwt`
 6. Find the app key `todo:TodoListBaseAddress` and replace the value with the base address of the TodoListService-ManualJwt project, for example `https://localhost:44324`.

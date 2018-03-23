@@ -198,6 +198,7 @@ Function ConfigureApplications
    Write-Host "Updating the sample code ($configFile)"
    ReplaceSetting -configFilePath $configFile -key "ida:Tenant" -newValue $tenantName
    ReplaceSetting -configFilePath $configFile -key "ida:Audience" -newValue $serviceAadApplication.IdentifierUris
+   ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue $serviceAadApplication.AppId
 
    # Update config file for 'client'
    $configFile = $pwd.Path + "\..\TodoListClient\App.Config"
