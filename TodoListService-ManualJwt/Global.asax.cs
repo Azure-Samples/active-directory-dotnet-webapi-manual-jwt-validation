@@ -66,7 +66,7 @@ namespace TodoListService_ManualJwt
         static string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
         static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
         static string audience = ConfigurationManager.AppSettings["ida:Audience"];
-        static string audience = ConfigurationManager.AppSettings["ida:AppId"];
+        static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
         string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
 
         static string _issuer = string.Empty;
@@ -126,7 +126,7 @@ namespace TodoListService_ManualJwt
             TokenValidationParameters validationParameters = new TokenValidationParameters
             {
                 // We accept both the App Id URI and the AppId of this service application
-                ValidAudiences = new[] { audience, appId },
+                ValidAudiences = new[] { audience, clientId },
 
                 // Supports both the Azure AD V1 and V2 endpoint
                 ValidIssuers = new [] { issuer, $"{issuer}/v2.0" },
