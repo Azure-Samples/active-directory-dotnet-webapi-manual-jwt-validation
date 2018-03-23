@@ -115,7 +115,23 @@ Explore the sample by signing in, adding items to the To Do list, removing the u
 
 ## About The Code
 
-The manual JWT validation occurs in the [TokenValidationHandler](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/master/TodoListService-ManualJwt/Global.asax.cs#L58) implementation in the `Global.aspx.cs` file in the TodoListService-ManualJwt project.
+The manual JWT validation occurs in the [TokenValidationHandler](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/master/TodoListService-ManualJwt/Global.asax.cs#L58) implementation in the `Global.aspx.cs` file in the TodoListService-ManualJwt project. Each time a call is done on a controller method holiding the `[Authorize]` attribute, the TokenValidationHandler.SendAsync method is called:
+https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/4b80657c5506c8cb30af67b9f61bb6aa68dfca58/TodoListService-ManualJwt/Global.asax.cs#L80
+
+This method:
+
+1. gets the token from the Authorization headers
+2. verifies that the token has not expired
+3. gets the open id configuration from the Azure AD discovery endpoint
+4. Sets the parameters to validate:
+
+  - the audience - the application accepts both its App Id URI and its AppID/clientID
+  - the valid issuers - the application accepts both Azure AD V1 and Azure AD V2
+
+5. Then it delegates to the `JwtSecurityTokenHandler` class (provided by the `System.IdentityModel.Tokens` library)
+
+the `TokenValidationHandler` class is registered with ASP.NET in the `TodoListService-ManualJwt/Global.asx.cs` file, in the `application_start()` method :
+https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/4b80657c5506c8cb30af67b9f61bb6aa68dfca58/TodoListService-ManualJwt/Global.asax.cs#L54
 
 ## How To Recreate This Sample
 
@@ -162,6 +178,10 @@ In order to run this sample on Azure Government you can follow through the steps
   - Navigate to the Web.config file. Replace the `ida:AADInstance` property in the Azure AD section with `https://login.microsoftonline.us/`.
 
 Once those changes have been accounted for, you should be able to run this sample on Azure Government.
+
+## Troubleshooting
+
+If you are using this sample with an Azure AD B2C custom policy, you might want to read #22, and change step 3. in the [About the code](About-the-code) paragraph.
 
 ## More information
 
