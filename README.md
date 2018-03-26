@@ -75,7 +75,7 @@ here are two projects in this sample. Each needs to be separately registered in 
 5. Enter a friendly name for the application, for example 'TodoListService-ManualJwt' and select 'Web app / API' as the Application type. For the Sign-on URL, enter the base URL for the sample, which is by default `https://localhost:44324`. Click on **Create** to create the application.
 6. In the succeeding page, Find the **Application ID** value and copy it to the clipboard.
 7. Then click on **Settings** and choose **Properties**.
-8. For the App ID URI, update the existing value https://\<your_tenant_name\>/TodoListService-ManualJwt by replacing \<your_tenant_name\> with the name of your Azure AD tenant.
+8. Replace the existing **App ID URI** value with https://<your_tenant_name>/TodoListService-ManualJwt, where <your_tenant_name> is the name of your Azure AD tenant.
 
 #### Register the TodoListClient app
 
