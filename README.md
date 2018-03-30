@@ -152,7 +152,7 @@ First, in Visual Studio 2017 create an empty solution to host the projects.  The
 ### Creating the TodoListClient Project
 
 1. In the solution, create a new Windows --> Windows Classic Desktop -> WPF App(.NET Framework)  called TodoListClient.
-2. Add the (stable) Active Directory Authentication Library (ADAL) NuGet, `Microsoft.IdentityModel.Clients.ActiveDirectory`, version 1.0.3 (or higher) to the project.
+2. Add the Active Directory Authentication Library (ADAL) NuGet, `Microsoft.IdentityModel.Clients.ActiveDirectory` to the project.
 3. Add  assembly references to `System.Net.Http`, `System.Web.Extensions`, and `System.Configuration`.
 4. Add a new class to the project called `TodoItem.cs`.  Copy the code from the sample project file of same name into this class, completely replacing the code in the file in the new project.
 5. Add a new class to the project called `FileCache.cs`.  Copy the code from the sample project file of same name into this class, completely replacing the code in the file in the new project.
