@@ -7,26 +7,7 @@
  1) Run Powershell as an administrator
  2) in the PowerShell window, type: Install-Module AzureAD
 
- There are three ways to run this script
- Option1 (interactive)
- ---------------------
- Just run . .\Configue.ps1, and you will be prompted to sign-in (email address, password, and if needed MFA). 
- The script will be run as the signed-in user and will use the tenant in which the user is defined.
-
- Option 2 (Interactive, but create apps in a specified tenant)
- -------------------------------------------------------------
- If you want to create the apps in a specific tenant, before you run this script
- - In the Azure portal (https://portal.azure.com), choose your active directory tenant, then go to the Properties of the tenant and copy
-   the DirectoryID. This is what we'll use in this script for the tenant ID
- - run . .\Configue.ps1 -TenantId [place here the GUID representing the tenant ID]
-
- Option 2 (non-interactive)
- ---------------------------
- This supposes that you know the credentials of the user under which identity you want to create
- the applications. Here is an example of script you'd want to run in a PowerShell Window
-   $secpasswd = ConvertTo-SecureString "[Password here]" -AsPlainText -Force
-   $mycreds = New-Object System.Management.Automation.PSCredential ("[login@tenantName here]", $secpasswd)
-   . .\Configure.ps1 -Credential $mycreds
+ There are four ways to run this script. For more information, read the AppCreationScripts.md file in the same folder as this script.
 #>
 
 # Adds the requiredAccesses (expressed as a pipe separated string) to the requiredAccess structure
@@ -55,15 +36,15 @@ Function AddResourcePermission($requiredAccess, `
 # See also: http://stackoverflow.com/questions/42164581/how-to-configure-a-new-azure-ad-application-through-powershell
 Function GetRequiredPermissions([string] $applicationDisplayName, [string] $requiredDelegatedPermissions, [string]$requiredApplicationPermissions, $servicePrincipal)
 {
-	# If we are passed the service principal we use it directly, otherwise we find it from the display name (which might not be unique)
-	if ($servicePrincipal)
-	{
-		$sp = $servicePrincipal
-	}
-	else
+    # If we are passed the service principal we use it directly, otherwise we find it from the display name (which might not be unique)
+    if ($servicePrincipal)
     {
-		$sp = Get-AzureADServicePrincipal -Filter "DisplayName eq '$applicationDisplayName'"
-	}
+        $sp = $servicePrincipal
+    }
+    else
+    {
+        $sp = Get-AzureADServicePrincipal -Filter "DisplayName eq '$applicationDisplayName'"
+    }
     $appid = $sp.AppId
     $requiredAccess = New-Object Microsoft.Open.AzureAD.Model.RequiredResourceAccess
     $requiredAccess.ResourceAppId = $appid 
@@ -155,6 +136,8 @@ Function ConfigureApplications
                                                    -HomePage "https://localhost:44324" `
                                                    -IdentifierUris "https://$tenantName/TodoListService-ManualJwt" `
                                                    -PublicClient $False
+
+
    $currentAppId = $serviceAadApplication.AppId
    $serviceServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
    Write-Host "Done."
@@ -168,6 +151,8 @@ Function ConfigureApplications
    $clientAadApplication = New-AzureADApplication -DisplayName "TodoListClient-ManualJwt" `
                                                   -ReplyUrls "https://TodoListClient-ManualJwt" `
                                                   -PublicClient $True
+
+
    $currentAppId = $clientAadApplication.AppId
    $clientServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
    Write-Host "Done."
@@ -176,22 +161,14 @@ Function ConfigureApplications
    $clientPortalUrl = "https://portal.azure.com/#@"+$tenantName+"/blade/Microsoft_AAD_IAM/ApplicationBlade/appId/"+$clientAadApplication.AppId+"/objectId/"+$clientAadApplication.ObjectId
    Add-Content -Value "<tr><td>client</td><td>$currentAppId</td><td><a href='$clientPortalUrl'>TodoListClient-ManualJwt</a></td></tr>" -Path createdApps.html
 
+   $requiredResourcesAccess = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.RequiredResourceAccess]
    # Add Required Resources Access (from 'client' to 'service')
    Write-Host "Getting access from 'client' to 'service'"
-   $requiredResourcesAccess = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.RequiredResourceAccess]
    $requiredPermissions = GetRequiredPermissions -applicationDisplayName "TodoListService-ManualJwt" `
                                                  -requiredDelegatedPermissions "user_impersonation";
    $requiredResourcesAccess.Add($requiredPermissions)
    Set-AzureADApplication -ObjectId $clientAadApplication.ObjectId -RequiredResourceAccess $requiredResourcesAccess
    Write-Host "Granted."
-
-    # Configure known client applications for service 
-	Write-Host "Configure known client applications for the 'service'"
-	$knowApplications = New-Object System.Collections.Generic.List[System.String]
-	$knowApplications.Add($clientAadApplication.AppId)
-    Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -KnownClientApplications $knowApplications
-	Write-Host "Configured."
-
 
    # Update config file for 'service'
    $configFile = $pwd.Path + "\..\TodoListService-ManualJwt\Web.Config"
@@ -208,7 +185,7 @@ Function ConfigureApplications
    ReplaceSetting -configFilePath $configFile -key "ida:RedirectUri" -newValue $clientAadApplication.ReplyUrls
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListResourceId" -newValue $serviceAadApplication.IdentifierUris
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListBaseAddress" -newValue $serviceAadApplication.HomePage
-  Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html
+   Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html
 
   }
 }

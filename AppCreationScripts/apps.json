@@ -1,4 +1,11 @@
 {
+  "Sample": {
+    "Title": "Manually validating a JWT access token in a web API",
+    "Level": 300,
+    "Client": ".NET 4.5 Desktop App (WPF)",
+    "Service": "ASP.NET Web API"
+  },
+
   /*
     This section describes the Azure AD Applications to configure, and their dependencies
   */
