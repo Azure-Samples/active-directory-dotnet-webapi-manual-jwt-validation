@@ -78,6 +78,9 @@ As a first step you'll need to:
 1. On the top bar, click on your account and under the **Directory** list, choose the Active Directory tenant where you wish to register your application.
 1. Click on **All services** in the left-hand nav, and choose **Azure Active Directory**.
 
+> In the next steps, you might need the tenant name (or directory name) or the tenant ID (or directory ID). These are presented in the **Properties**
+  of the Azure Active Directory window respectively as *Name* and *Directory ID*
+
 #### Register the service app (TodoListService-ManualJwt)
 
 1. In the  **Azure Active Directory** pane, click on **App registrations** and choose **New application registration**.
@@ -179,7 +182,7 @@ This project has one WebApp / Web API projects. To deploy them to Azure Web Site
 
 - create an Azure Web Site
 - publish the Web App / Web APIs to the web site, and
-- update it client(s) to call the web site instead of IIS Express.
+- update its client(s) to call the web site instead of IIS Express.
 
 ### Create and Publish the `TodoListService-ManualJwt` to an Azure Web Site
 
