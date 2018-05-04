@@ -75,7 +75,8 @@ If you want to use this automation, read the instructions in [App Creation Scrip
 As a first step you'll need to:
 
 1. Sign in to the [Azure portal](https://portal.azure.com).
-1. On the top bar, click on your account and under the **Directory** list, choose the Active Directory tenant where you wish to register your application.
+1. On the top bar, click on your account, and then on **Switch Directory**. 
+1. Once the *Directory + subscription* pane opens, choose the Active Directory tenant where you wish to register your application, from the *Favorites* or *All Directories* list.
 1. Click on **All services** in the left-hand nav, and choose **Azure Active Directory**.
 
 > In the next steps, you might need the tenant name (or directory name) or the tenant ID (or directory ID). These are presented in the **Properties**
