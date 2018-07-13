@@ -25,20 +25,17 @@ using System.Web.Routing;
 
 // The following using statements were added for this sample.
 using System.Net.Http;
-using System.IdentityModel.Tokens;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Net;
-using System.IdentityModel.Selectors;
 using System.Security.Claims;
 using System.Net.Http.Headers;
-using System.IdentityModel.Metadata;
-using System.ServiceModel.Security;
-using System.Xml;
-using System.Security.Cryptography.X509Certificates;
 using System.Globalization;
 using System.Configuration;
 using Microsoft.IdentityModel.Protocols;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace TodoListService_ManualJwt
 {
@@ -70,7 +67,7 @@ namespace TodoListService_ManualJwt
         string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
 
         static string _issuer = string.Empty;
-        static List<SecurityToken> _signingTokens = null;
+        static ICollection<SecurityKey> _signingKeys = null;
         static DateTime _stsMetadataRetrievalTime = DateTime.MinValue;
         static string scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
         
@@ -94,27 +91,27 @@ namespace TodoListService_ManualJwt
             }
 
             string issuer;
-            List<SecurityToken> signingTokens;
+            ICollection<SecurityKey> signingKeys;
 
             try
             {
                 // The issuer and signingTokens are cached for 24 hours. They are updated if any of the conditions in the if condition is true.            
                 if (DateTime.UtcNow.Subtract(_stsMetadataRetrievalTime).TotalHours > 24
                     || string.IsNullOrEmpty(_issuer)
-                    || _signingTokens == null)
+                    || _signingKeys == null)
                 {
                     // Get tenant information that's used to validate incoming jwt tokens
                     string stsDiscoveryEndpoint = string.Format("{0}/.well-known/openid-configuration", authority);
-                    ConfigurationManager<OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint);
-                    OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync();
+                    ConfigurationManager<OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint, new OpenIdConnectConfigurationRetriever());
+                    OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync(cancellationToken);
                     _issuer = config.Issuer;
-                    _signingTokens = config.SigningTokens.ToList();
+                    _signingKeys = config.SigningKeys;
                     
                     _stsMetadataRetrievalTime = DateTime.UtcNow;
                 }
 
                 issuer = _issuer;
-                signingTokens = _signingTokens;
+                signingKeys = _signingKeys;
             }
             catch (Exception)
             {
@@ -130,8 +127,7 @@ namespace TodoListService_ManualJwt
 
                 // Supports both the Azure AD V1 and V2 endpoint
                 ValidIssuers = new [] { issuer, $"{issuer}/v2.0" },
-                IssuerSigningTokens = signingTokens,
-                CertificateValidator = X509CertificateValidator.None // Certificate validation does not make sense since AAD's metadata document is signed with a self-signed certificate.
+                IssuerSigningKeys = signingKeys,
             };
 
             try
