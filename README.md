@@ -27,9 +27,14 @@ A token represents the outcome of an authentication operation with some artifact
 
 With Azure Active Directory taking the full responsibility of verifying user's raw credentials, the token receiver's responsibility shifts from verifying raw credentials to verifying that their caller did indeed go through your identity provider of choice and successfully authenticated. The identity provider represents successful authentication operations by issuing a token, hence the job now becomes to validate that token.
 
+### What to validate 
+While you should always validate tokens issued to the resources (audience) that you are developineg, your application will also obtain access tokens for other resources from AAD. AAD will provide an access token in whatever token format that is appropriate to that resource. 
+This access token itself should be treated like an opaque blob by your application, as your app isn’t the access token’s intended audience and thus your app should not bother itself with looking into the contents of this access token. 
+Your app should just pass it in the call to the resource. It's the called resource's responsibility to validate this access token token.
+
 ### Validating the claims
 
-When an application receives an ID token upon user sign-in, it should also perform a few checks against the claims in the ID token. These verifications include but are not limited to:
+When an application receives an access token upon user sign-in, it should also perform a few checks against the claims in the access token. These verifications include but are not limited to:
 
 - **audience** claim, to verify that the ID token was intended to be given to your application
 - **not before** and "expiration time" claims, to verify that the ID token has not expired
@@ -95,7 +100,7 @@ of the Azure Active Directory window respectively as *Name* and *Directory ID*
 #### Register the TodoListClient client app
 
 1. Click on **App registrations** and choose **New application registration**.
-1. Enter a friendly name for the application, for example 'TodoListClient-DotNet' and select 'Native' as the Application Type. For the redirect URI, enter `https://TodoListClient`. Please note that the Redirect URI will not be used in this sample, but it needs to be defined nonetheless. Click on **Create** to create the application.
+1. Enter a friendly name for the application, for example 'TodoListClient-ManualJwt' and select 'Native' as the Application Type. For the redirect URI, enter `https://TodoListClient`. Please note that the Redirect URI will not be used in this sample, but it needs to be defined nonetheless. Click on **Create** to create the application.
 1. In the succeeding page, Find the **Application ID** value and copy it to the clipboard.
 1. Then click on **Settings** and choose **Properties**.
 1. Configure Permissions for your application - in the Settings menu, choose the **Required permissions** section, click on **Add**, then **Select an API**, and type 'TodoListService' in the textbox and hit enter. Select 'TodoListService-ManualJwt' from the results and click the 'Select' button. Then, click on  **Select Permissions** and select 'Access TodoListService-ManualJwt'. Click the 'Select' button again to close this screen. Click on **Done** to finish adding the permission.

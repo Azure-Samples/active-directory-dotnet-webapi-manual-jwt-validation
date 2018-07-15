@@ -1,3 +1,10 @@
+[CmdletBinding()]
+    param(
+        [PSCredential] $Credential,
+        [Parameter(HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
+        [string] $tenantId
+    )
+
 <#
  This script creates the Azure AD applications needed for this sample and updates the configuration files
  for the visual Studio projects from the data in the Azure AD applications.
@@ -8,6 +15,10 @@
  2) in the PowerShell window, type: Install-Module AzureAD
 
  There are four ways to run this script. For more information, read the AppCreationScripts.md file in the same folder as this script.
+
+ # Parameters
+ # $tenantId is the Active Directory Tenant. This is a GUID which represents the "Directory ID" of the AzureAD tenant
+ # into which you want to create the apps. Look it up in the Azure portal in the "Properties" of the Azure AD.
 #>
 
 # Adds the requiredAccesses (expressed as a pipe separated string) to the requiredAccess structure
@@ -92,18 +103,7 @@ Function ConfigureApplications
    This function creates the Azure AD applications for the sample in the provided Azure AD tenant and updates the
    configuration files in the client and service project  of the visual studio solution (App.Config and Web.Config)
    so that they are consistent with the Applications parameters
-#> 
-    [CmdletBinding()]
-    param(
-        [PSCredential] $Credential,
-        [Parameter(HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
-        [string] $tenantId
-    )
-
-   process
-   {
-    # $tenantId is the Active Directory Tenant. This is a GUID which represents the "Directory ID" of the AzureAD tenant
-    # into which you want to create the apps. Look it up in the Azure portal in the "Properties" of the Azure AD.
+#>
 
     # Login to Azure PowerShell (interactive if credentials are not already provided:
     # you'll need to sign-in with creds enabling your to create apps in the tenant)
@@ -140,6 +140,12 @@ Function ConfigureApplications
 
    $currentAppId = $serviceAadApplication.AppId
    $serviceServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
+
+   # add this user as app owner
+   $user = Get-AzureADUser -ObjectId $creds.Account.Id
+   Add-AzureADApplicationOwner -ObjectId $serviceAadApplication.ObjectId -RefObjectId $user.ObjectId
+   Write-Host "'$($user.UserPrincipalName)' added as an application owner to app '$($serviceAadApplication.DisplayName)'"
+
    Write-Host "Done."
 
    # URL of the AAD application in the Azure portal
@@ -155,6 +161,11 @@ Function ConfigureApplications
 
    $currentAppId = $clientAadApplication.AppId
    $clientServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
+
+   # add this user as app owner
+   Add-AzureADApplicationOwner -ObjectId $clientAadApplication.ObjectId -RefObjectId $user.ObjectId
+   Write-Host "'$($user.UserPrincipalName)' added as an application owner to app '$($clientServicePrincipal.DisplayName)'"
+
    Write-Host "Done."
 
    # URL of the AAD application in the Azure portal
@@ -186,8 +197,7 @@ Function ConfigureApplications
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListResourceId" -newValue $serviceAadApplication.IdentifierUris
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListBaseAddress" -newValue $serviceAadApplication.HomePage
    Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html
-
-  }
+  
 }
 
 
