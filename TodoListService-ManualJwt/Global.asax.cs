@@ -24,21 +24,20 @@ using System.Web.Optimization;
 using System.Web.Routing;
 
 // The following using statements were added for this sample.
-using System.Net.Http;
-using System.IdentityModel.Tokens;
-using System.Threading.Tasks;
+using System.Net.Http;using System.Threading.Tasks;
 using System.Threading;
 using System.Net;
 using System.IdentityModel.Selectors;
 using System.Security.Claims;
 using System.Net.Http.Headers;
-using System.IdentityModel.Metadata;
+using Microsoft.IdentityModel.Tokens;
 using System.ServiceModel.Security;
 using System.Xml;
-using System.Security.Cryptography.X509Certificates;
+using System.IdentityModel.Tokens.Jwt;
 using System.Globalization;
 using System.Configuration;
 using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace TodoListService_ManualJwt
 {
@@ -70,7 +69,7 @@ namespace TodoListService_ManualJwt
         string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
 
         static string _issuer = string.Empty;
-        static List<SecurityToken> _signingTokens = null;
+        static ICollection<SecurityKey> _signingKeys = null;
         static DateTime _stsMetadataRetrievalTime = DateTime.MinValue;
         static string scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
         
@@ -89,32 +88,32 @@ namespace TodoListService_ManualJwt
 
             if (jwtToken == null)
             {
-                HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
+                HttpResponseMessage response = this.BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
                 return response;
             }
 
             string issuer;
-            List<SecurityToken> signingTokens;
+            ICollection<SecurityKey> signingTokens;
 
             try
             {
                 // The issuer and signingTokens are cached for 24 hours. They are updated if any of the conditions in the if condition is true.            
                 if (DateTime.UtcNow.Subtract(_stsMetadataRetrievalTime).TotalHours > 24
                     || string.IsNullOrEmpty(_issuer)
-                    || _signingTokens == null)
+                    || _signingKeys == null)
                 {
                     // Get tenant information that's used to validate incoming jwt tokens
-                    string stsDiscoveryEndpoint = string.Format("{0}/.well-known/openid-configuration", authority);
-                    ConfigurationManager<OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint);
-                    OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync();
+                    string stsDiscoveryEndpoint = $"{this.authority}/.well-known/openid-configuration";
+                    Microsoft.IdentityModel.Protocols.ConfigurationManager<Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint, new OpenIdConnectConfigurationRetriever());
+                    Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync(cancellationToken);
                     _issuer = config.Issuer;
-                    _signingTokens = config.SigningTokens.ToList();
+                    _signingKeys = config.SigningKeys;
                     
                     _stsMetadataRetrievalTime = DateTime.UtcNow;
                 }
 
                 issuer = _issuer;
-                signingTokens = _signingTokens;
+                signingTokens = _signingKeys;
             }
             catch (Exception)
             {
@@ -130,8 +129,7 @@ namespace TodoListService_ManualJwt
 
                 // Supports both the Azure AD V1 and V2 endpoint
                 ValidIssuers = new [] { issuer, $"{issuer}/v2.0" },
-                IssuerSigningTokens = signingTokens,
-                CertificateValidator = X509CertificateValidator.None // Certificate validation does not make sense since AAD's metadata document is signed with a self-signed certificate.
+                IssuerSigningKeys = signingTokens
             };
 
             try
@@ -152,7 +150,7 @@ namespace TodoListService_ManualJwt
                 // If the token is scoped, verify that required permission is set in the scope claim.
                 if (ClaimsPrincipal.Current.FindFirst(scopeClaimType) != null && ClaimsPrincipal.Current.FindFirst(scopeClaimType).Value != "user_impersonation")
                 {
-                    HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Forbidden);
+                    HttpResponseMessage response = this.BuildResponseErrorMessage(HttpStatusCode.Forbidden);
                     return response;
                 }
 
@@ -160,7 +158,7 @@ namespace TodoListService_ManualJwt
             }
             catch (SecurityTokenValidationException)
             {
-                HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
+                HttpResponseMessage response = this.BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
                 return response;
             }
             catch (Exception)
