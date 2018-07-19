@@ -37,15 +37,15 @@ namespace TodoListClient
         private static readonly object FileLock = new object();
 
         // Initializes the cache against a local file.
-        // If the file is already rpesent, it loads its content in the ADAL cache
+        // If the file is already present, it loads its content in the ADAL cache
         public FileCache(string filePath=@".\TokenCache.dat")
         {
-            CacheFilePath = filePath;
-            this.AfterAccess = AfterAccessNotification;
-            this.BeforeAccess = BeforeAccessNotification;
+            this.CacheFilePath = filePath;
+            this.AfterAccess = this.AfterAccessNotification;
+            this.BeforeAccess = this.BeforeAccessNotification;
             lock (FileLock)
             {
-                this.Deserialize(File.Exists(CacheFilePath) ? ProtectedData.Unprotect(File.ReadAllBytes(CacheFilePath), null, DataProtectionScope.CurrentUser) : null);
+                this.Deserialize(File.Exists(this.CacheFilePath) ? ProtectedData.Unprotect(File.ReadAllBytes(this.CacheFilePath), null, DataProtectionScope.CurrentUser) : null);
             }
         }
 
@@ -62,7 +62,7 @@ namespace TodoListClient
         {
             lock (FileLock)
             {
-                this.Deserialize(File.Exists(CacheFilePath) ?  ProtectedData.Unprotect(File.ReadAllBytes(CacheFilePath),null,DataProtectionScope.CurrentUser) : null);
+                this.Deserialize(File.Exists(this.CacheFilePath) ?  ProtectedData.Unprotect(File.ReadAllBytes(this.CacheFilePath),null,DataProtectionScope.CurrentUser) : null);
             }
         }
 
@@ -75,7 +75,7 @@ namespace TodoListClient
                 lock (FileLock)
                 {                    
                     // reflect changes in the persistent store
-                    File.WriteAllBytes(CacheFilePath, ProtectedData.Protect(this.Serialize(),null,DataProtectionScope.CurrentUser));
+                    File.WriteAllBytes(this.CacheFilePath, ProtectedData.Protect(this.Serialize(),null,DataProtectionScope.CurrentUser));
                     // once the write operation took place, restore the HasStateChanged bit to false
                     this.HasStateChanged = false;
                 }                
