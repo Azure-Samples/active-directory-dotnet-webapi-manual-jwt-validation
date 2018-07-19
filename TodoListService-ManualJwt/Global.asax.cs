@@ -14,30 +14,27 @@
 //    limitations under the License.
 //----------------------------------------------------------------------------------------------
 
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Configuration;
+using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+
+// The following using statements were added for this sample.
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
-
-// The following using statements were added for this sample.
-using System.Net.Http;using System.Threading.Tasks;
-using System.Threading;
-using System.Net;
-using System.IdentityModel.Selectors;
-using System.Security.Claims;
-using System.Net.Http.Headers;
-using Microsoft.IdentityModel.Tokens;
-using System.ServiceModel.Security;
-using System.Xml;
-using System.IdentityModel.Tokens.Jwt;
-using System.Globalization;
-using System.Configuration;
-using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace TodoListService_ManualJwt
 {
@@ -62,17 +59,18 @@ namespace TodoListService_ManualJwt
         // The Authority is the sign-in URL of the tenant.
         // The Audience is the value the service expects to see in tokens that are addressed to it.
         //
-        static string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
-        static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
-        static string audience = ConfigurationManager.AppSettings["ida:Audience"];
-        static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
-        string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+        private static string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
 
-        static string _issuer = string.Empty;
-        static ICollection<SecurityKey> _signingKeys = null;
-        static DateTime _stsMetadataRetrievalTime = DateTime.MinValue;
-        static string scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
-        
+        private static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
+        private static string audience = ConfigurationManager.AppSettings["ida:Audience"];
+        private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
+        private string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+
+        private static string _issuer = string.Empty;
+        private static ICollection<SecurityKey> _signingKeys = null;
+        private static DateTime _stsMetadataRetrievalTime = DateTime.MinValue;
+        private static string scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
+
         //
         // SendAsync checks that incoming requests have a valid access token, and sets the current user identity using that access token.
         //
@@ -93,27 +91,27 @@ namespace TodoListService_ManualJwt
             }
 
             string issuer;
-            ICollection<SecurityKey> signingTokens;
+            ICollection<SecurityKey> signingKeys;
 
             try
             {
-                // The issuer and signingTokens are cached for 24 hours. They are updated if any of the conditions in the if condition is true.            
+                // The issuer and signingKeys are cached for 24 hours. They are updated if any of the conditions in the if condition is true.
                 if (DateTime.UtcNow.Subtract(_stsMetadataRetrievalTime).TotalHours > 24
                     || string.IsNullOrEmpty(_issuer)
                     || _signingKeys == null)
                 {
                     // Get tenant information that's used to validate incoming jwt tokens
                     string stsDiscoveryEndpoint = $"{this.authority}/.well-known/openid-configuration";
-                    Microsoft.IdentityModel.Protocols.ConfigurationManager<Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint, new OpenIdConnectConfigurationRetriever());
-                    Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync(cancellationToken);
+                    var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint, new OpenIdConnectConfigurationRetriever());
+                    var config = await configManager.GetConfigurationAsync(cancellationToken);
                     _issuer = config.Issuer;
                     _signingKeys = config.SigningKeys;
-                    
+
                     _stsMetadataRetrievalTime = DateTime.UtcNow;
                 }
 
                 issuer = _issuer;
-                signingTokens = _signingKeys;
+                signingKeys = _signingKeys;
             }
             catch (Exception)
             {
@@ -128,8 +126,8 @@ namespace TodoListService_ManualJwt
                 ValidAudiences = new[] { audience, clientId },
 
                 // Supports both the Azure AD V1 and V2 endpoint
-                ValidIssuers = new [] { issuer, $"{issuer}/v2.0" },
-                IssuerSigningKeys = signingTokens
+                ValidIssuers = new[] { issuer, $"{issuer}/v2.0" },
+                IssuerSigningKeys = signingKeys
             };
 
             try
@@ -174,7 +172,7 @@ namespace TodoListService_ManualJwt
             //
             // The Scheme should be "Bearer", authorization_uri should point to the tenant url and resource_id should point to the audience.
             //
-            AuthenticationHeaderValue authenticateHeader = new AuthenticationHeaderValue("Bearer", "authorization_uri=\"" + authority + "\"" + "," + "resource_id=" + audience);
+            AuthenticationHeaderValue authenticateHeader = new AuthenticationHeaderValue("Bearer", "authorization_uri=\"" + this.authority + "\"" + "," + "resource_id=" + audience);
 
             response.Headers.WwwAuthenticate.Add(authenticateHeader);
 

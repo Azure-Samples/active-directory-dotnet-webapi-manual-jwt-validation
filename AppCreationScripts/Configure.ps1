@@ -66,7 +66,7 @@ Function GetRequiredPermissions([string] $applicationDisplayName, [string] $requ
     {
         AddResourcePermission $requiredAccess -exposedPermissions $sp.Oauth2Permissions -requiredAccesses $requiredDelegatedPermissions -permissionType "Scope"
     }
-    
+
     # $sp.AppRoles | Select Id,AdminConsentDisplayName,Value: To see the list of all the Application permissions for the application
     if ($requiredApplicationPermissions)
     {
@@ -181,13 +181,12 @@ Function ConfigureApplications
    Set-AzureADApplication -ObjectId $clientAadApplication.ObjectId -RequiredResourceAccess $requiredResourcesAccess
    Write-Host "Granted."
 
-    # Configure known client applications for service 
-	Write-Host "Configure known client applications for the 'service'"
-	$knowApplications = New-Object System.Collections.Generic.List[System.String]
-	$knowApplications.Add($clientAadApplication.AppId)
-    Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -KnownClientApplications $knowApplications
-	Write-Host "Configured."
-
+   # Configure known client applications for service
+   Write-Host "Configure known client applications for the 'service'"
+   $knowApplications = New-Object System.Collections.Generic.List[System.String]
+   $knowApplications.Add($clientAadApplication.AppId)
+   Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -KnownClientApplications $knowApplications
+   Write-Host "Configured."
 
    # Update config file for 'service'
    $configFile = $pwd.Path + "\..\TodoListService-ManualJwt\Web.Config"
