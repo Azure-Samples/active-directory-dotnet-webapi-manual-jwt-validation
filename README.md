@@ -28,7 +28,7 @@ A token represents the outcome of an authentication operation with some artifact
 With Azure Active Directory taking the full responsibility of verifying user's raw credentials, the token receiver's responsibility shifts from verifying raw credentials to verifying that their caller did indeed go through your identity provider of choice and successfully authenticated. The identity provider represents successful authentication operations by issuing a token, hence the job now becomes to validate that token.
 
 ### What to validate 
-While you should always validate tokens issued to the resources (audience) that you are developineg, your application will also obtain access tokens for other resources from AAD. AAD will provide an access token in whatever token format that is appropriate to that resource. 
+While you should always validate tokens issued to the resources (audience) that you are developing, your application will also obtain access tokens for other resources from AAD. AAD will provide an access token in whatever token format that is appropriate to that resource. 
 This access token itself should be treated like an opaque blob by your application, as your app isn’t the access token’s intended audience and thus your app should not bother itself with looking into the contents of this access token. 
 Your app should just pass it in the call to the resource. It's the called resource's responsibility to validate this access token token.
 
