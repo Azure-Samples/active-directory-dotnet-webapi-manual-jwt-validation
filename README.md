@@ -30,7 +30,7 @@ With Azure Active Directory taking the full responsibility of verifying user's r
 ### What to validate 
 While you should always validate tokens issued to the resources (audience) that you are developing, your application will also obtain access tokens for other resources from AAD. AAD will provide an access token in whatever token format that is appropriate to that resource. 
 This access token itself should be treated like an opaque blob by your application, as your app isn’t the access token’s intended audience and thus your app should not bother itself with looking into the contents of this access token. 
-Your app should just pass it in the call to the resource. It's the called resource's responsibility to validate this access token token.
+Your app should just pass it in the call to the resource. It's the called resource's responsibility to validate this access token.
 
 ### Validating the claims
 
@@ -41,7 +41,7 @@ When an application receives an access token upon user sign-in, it should also p
 - **issuer** claim, to verify that the token was issued to your app by the v2.0 endpoint
 - **nonce**, as a token replay attack mitigation
 
-You are advised to use standard library methods like [JwtSecurityTokenHandler.ValidateToken Method (JwtSecurityToken)](https://msdn.microsoft.com/en-us/library/dn451163(v=vs.114).aspx) to do most of the aforementioned heavy lifting. You can further extend the validation process by making decisions based on claims received in the token. For example, multi-tenant applications can extend the standard validation by inspecting value of the ``tid`` claim (Tenant ID) against a set of pre-selected tenants to ensure they only honor token from tenants of their choice. Details on the claims provided in JWT tokens are listed in the [Azure AD token reference](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-token-and-claims). When you debug your application and want to understand the claims held by the token, you might find it useful to use the [JWT token inspector](https://jwt.ms) tool.
+You are advised to use standard library methods like [JwtSecurityTokenHandler.ValidateToken Method (JwtSecurityToken)](https://msdn.microsoft.com/en-us/library/dn451163(v=vs.114).aspx) to do most of the aforementioned heavy lifting. You can further extend the validation process by making decisions based on claims received in the token. For example, multi-tenant applications can extend the standard validation by inspecting the value of the ``tid`` claim (Tenant ID) against a set of pre-selected tenants to ensure they only honor tokens from tenants of their choice. Details on the claims provided in JWT tokens are listed in the [Azure AD token reference](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-token-and-claims). When you debug your application and want to understand the claims held by the token, you might find it useful to use the [JWT token inspector](https://jwt.ms) tool.
 
 > Looking for previous versions of this code sample? Check out the tags on the [releases](../../releases) GitHub page.
 
@@ -62,7 +62,7 @@ From your shell or command line:
 
 `git clone https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation.git`
 
-> Given that the name of the sample is pretty long, and so are the name of the referenced NuGet pacakges, you might want to clone it in a folder close to the root of your hard drive, to avoid file size limitations on Windows.
+> Given that the name of the sample is pretty long, and so are the name of the referenced NuGet packages, you might want to clone it in a folder close to the root of your hard drive, to avoid file size limitations on Windows.
 
 ### Step 2:  Register the sample with your Azure Active Directory tenant
 
@@ -177,7 +177,7 @@ First, in Visual Studio 2017 create an empty solution to host the projects.  The
 3. Add  assembly references to `System.Net.Http`, `System.Web.Extensions`, and `System.Configuration`.
 4. Add a new class to the project called `TodoItem.cs`.  Copy the code from the sample project file of the same name into this class, completely replacing the code in the file in the new project.
 5. Add a new class to the project called `FileCache.cs`.  Copy the code from the sample project file of the same name into this class, completely replacing the code in the file in the new project.
-6. Copy the markup from `MainWindow.xaml' in the sample project into the file of the same name in the new project, completely replacing the markup in the file in the new project.
+6. Copy the markup from `MainWindow.xaml` in the sample project into the file of the same name in the new project, completely replacing the markup in the file in the new project.
 7. Copy the code from `MainWindow.xaml.cs` in the sample project into the file of the same name in the new project, completely replacing the code in the file in the new project.
 8. In `app.config` create keys for `ida:AADInstance`, `ida:Tenant`, `ida:ClientId`, `ida:RedirectUri`, `todo:TodoListResourceId`, and `todo:TodoListBaseAddress` and set them accordingly.  For the global Azure cloud, the value of `ida:AADInstance` is `https://login.microsoftonline.com/{0}`.
 
