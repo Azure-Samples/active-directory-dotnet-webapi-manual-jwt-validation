@@ -3,7 +3,8 @@
     "Title": "Manually validating a JWT access token in a web API",
     "Level": 300,
     "Client": ".NET 4.5 Desktop App (WPF)",
-    "Service": "ASP.NET Web API"
+    "Service": "ASP.NET Web API",
+    "RepositoryUrl": "active-directory-dotnet-webapi-manual-jwt-validation"
   },
 
   /*
@@ -13,12 +14,14 @@
     {
       "Id": "service",
       "Name": "TodoListService-ManualJwt",
+      "Kind": "WebApi",
       "IsPublicClient": false,
       "HomePage": "https://localhost:44324"
     },
     {
       "Id": "client",
       "Name": "TodoListClient-ManualJwt",
+      "Kind": "Desktop",
       "IsPublicClient": true,
       "RequiredResourcesAccess": [
         {
@@ -75,7 +78,7 @@
         },
         {
           "key": "todo:TodoListResourceId",
-          "value": "service.IdentifierUris"
+          "value": "service.HomePage"
         },
         {
           "key": "todo:TodoListBaseAddress",
