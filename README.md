@@ -230,7 +230,7 @@ Once those changes have been accounted for, you should be able to run this sampl
 
 ## Troubleshooting
 
-If you are using this sample with an Azure AD B2C custom policy, you might want to read #22, and change step 3. in the [About the code](About-the-code) paragraph.
+If you are using this sample with an Azure AD B2C custom policy, you might want to read #22, and change step 3. in the [About the code](#about-the-code) paragraph.
 
 ## Community Help and Support
 
