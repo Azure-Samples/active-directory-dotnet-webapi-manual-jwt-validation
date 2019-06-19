@@ -22,7 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
+
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -62,9 +63,10 @@ namespace TodoListClient
         //
         private static string todoListResourceId = ConfigurationManager.AppSettings["todo:TodoListResourceId"];
         private static string todoListBaseAddress = ConfigurationManager.AppSettings["todo:TodoListBaseAddress"];
+        public static string [] scopes = { $"{todoListResourceId}/{ConfigurationManager.AppSettings["todo:TodoListScope"]}" };
 
         private HttpClient httpClient = new HttpClient();
-        private AuthenticationContext authContext = null;
+        private readonly IPublicClientApplication _app;
 
         // Button strings
         const string signInString = "Sign In";
@@ -73,7 +75,11 @@ namespace TodoListClient
         public MainWindow()
         {
             InitializeComponent();
-            authContext = new AuthenticationContext(authority, new FileCache());
+            _app = PublicClientApplicationBuilder.Create(clientId)
+                .WithAuthority(authority)
+                .Build();
+
+            TokenCacheHelper.EnableSerialization(_app.UserTokenCache);
             GetTodoList();
         }
 
@@ -84,40 +90,51 @@ namespace TodoListClient
 
         private async void GetTodoList(bool isAppStarting)
         {
+            var accounts = (await _app.GetAccountsAsync()).ToList();
+            if (!accounts.Any())
+            {
+                SignInButton.Content = signInString;
+                return;
+            }
+
             //
-            // Get an access token to call the To Do service.
+            // Get an access token to call the ToDo service.
             //
             AuthenticationResult result = null;
+           
             try
             {
-                result = await authContext.AcquireTokenSilentAsync(todoListResourceId, clientId);
-                SignInButton.Content = clearCacheString;
-                this.SetUserName(result.UserInfo);
+                result = await _app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
+                    .ExecuteAsync()
+                    .ConfigureAwait(false);
+
+                Dispatcher.Invoke(
+                    () =>
+                    {
+                        SignInButton.Content = clearCacheString;
+                        SetUserName(result.Account);
+                    });
             }
-            catch (AdalException ex)
+            // There is no access token in the cache, so prompt the user to sign-in.
+            catch (MsalUiRequiredException)
             {
-                // There is no access token in the cache, so prompt the user to sign-in.
-                if (ex.ErrorCode == AdalError.UserInteractionRequired || ex.ErrorCode == AdalError.FailedToAcquireTokenSilently)
+                if (!isAppStarting)
                 {
-                    if (!isAppStarting)
-                    {
-                        MessageBox.Show("Please sign in to view your To-Do list");
-                        SignInButton.Content = signInString;
-                    }
+                    MessageBox.Show("Please sign in to view your To-Do list");
+                    SignInButton.Content = signInString;
                 }
-                else
+            }
+            catch (MsalException ex)
+            {
+                // An unexpected error occurred.
+                string message = ex.Message;
+                if (ex.InnerException != null)
                 {
-                    // An unexpected error occurred.
-                    string message = ex.Message;
-                    if (ex.InnerException != null)
-                    {
-                        message += "Error Code: " + ex.ErrorCode + "Inner Exception : " + ex.InnerException.Message;
-                    }
-                    MessageBox.Show(message);
+                    message += "Error Code: " + ex.ErrorCode + "Inner Exception : " + ex.InnerException.Message;
                 }
+                MessageBox.Show(message);
 
                 UserName.Content = Properties.Resources.UserNotSignedIn;
-
                 return;
             }
 
@@ -153,36 +170,52 @@ namespace TodoListClient
                 return;
             }
 
+            var accounts = (await _app.GetAccountsAsync()).ToList();
+
+            if (!accounts.Any())
+            {
+                MessageBox.Show("Please sign in first");
+                return;
+            }
+            if (string.IsNullOrEmpty(TodoText.Text))
+            {
+                MessageBox.Show("Please enter a value for the To Do item name");
+                return;
+            }
+            
             //
             // Get an access token to call the To Do service.
             //
             AuthenticationResult result = null;
             try
             {
-                result = await authContext.AcquireTokenSilentAsync(todoListResourceId, clientId);
-                this.SetUserName(result.UserInfo);
-            }
-            catch (AdalException ex)
-            {
-                // There is no access token in the cache, so prompt the user to sign-in.
-                if (ex.ErrorCode == AdalError.UserInteractionRequired || ex.ErrorCode == AdalError.FailedToAcquireTokenSilently)
-                {
-                    MessageBox.Show("Please sign in first");
-                    SignInButton.Content = signInString;
-                }
-                else
-                {
-                    // An unexpected error occurred.
-                    string message = ex.Message;
-                    if (ex.InnerException != null)
-                    {
-                        message += "Error Code: " + ex.ErrorCode + "Inner Exception : " + ex.InnerException.Message;
-                    }
-
-                    MessageBox.Show(message);
-                }
-
+                result = await _app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
+                    .ExecuteAsync()
+                    .ConfigureAwait(false);
+                SetUserName(result.Account);
                 UserName.Content = Properties.Resources.UserNotSignedIn;
+            }
+            // There is no access token in the cache, so prompt the user to sign-in.
+            catch (MsalUiRequiredException)
+            {
+                MessageBox.Show("Please re-sign");
+                SignInButton.Content = signInString;
+            }
+            catch (MsalException ex)
+            {
+                // An unexpected error occurred.
+                string message = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    message += "Error Code: " + ex.ErrorCode + "Inner Exception : " + ex.InnerException.Message;
+                }
+
+                Dispatcher.Invoke(() =>
+                {
+                    UserName.Content = Properties.Resources.UserNotSignedIn;
+                    MessageBox.Show("Unexpected error: " + message);
+                });
+
 
                 return;
             }
@@ -213,11 +246,19 @@ namespace TodoListClient
 
         private async void SignIn(object sender = null, RoutedEventArgs args = null)
         {
+            var accounts = (await _app.GetAccountsAsync()).ToList();
+
             // If there is already a token in the cache, clear the cache and update the label on the button.
             if (SignInButton.Content.ToString() == clearCacheString)
             {
                 TodoList.ItemsSource = string.Empty;
-                authContext.TokenCache.Clear();
+                // clear the cache
+                while (accounts.Any())
+                {
+                    await _app.RemoveAsync(accounts.First());
+                    accounts = (await _app.GetAccountsAsync()).ToList();
+                }
+
                 // Also clear cookies from the browser control.
                 SignInButton.Content = signInString;
                 UserName.Content = Properties.Resources.UserNotSignedIn;
@@ -227,17 +268,24 @@ namespace TodoListClient
             //
             // Get an access token to call the To Do list service.
             //
-            AuthenticationResult result = null;
             try
             {
                 // Force a sign-in (PromptBehavior.Always), as the ADAL web browser might contain cookies for the current user, and using .Auto
                 // would re-sign-in the same user
-                result = await authContext.AcquireTokenAsync(todoListResourceId, clientId, redirectUri, new PlatformParameters(PromptBehavior.Always));
-                SignInButton.Content = clearCacheString;
-                SetUserName(result.UserInfo);
-                GetTodoList();
+                var result = await _app.AcquireTokenInteractive(scopes)
+                    .WithAccount(accounts.FirstOrDefault())
+                    .WithPrompt(Prompt.SelectAccount)
+                    .ExecuteAsync()
+                    .ConfigureAwait(false);
+                Dispatcher.Invoke(() =>
+                {
+                    SignInButton.Content = clearCacheString;
+                    SetUserName(result.Account);
+                    GetTodoList();
+                }
+                );
             }
-            catch (AdalException ex)
+            catch (MsalException ex)
             {
                 if (ex.ErrorCode == "access_denied")
                 {
@@ -256,35 +304,18 @@ namespace TodoListClient
                 }
 
                 UserName.Content = Properties.Resources.UserNotSignedIn;
-
-                return;
             }
 
         }
 
         // Set user name to text box
-        private void SetUserName(UserInfo userInfo)
+        private void SetUserName(IAccount userInfo)
         {
             string userName = null;
 
             if (userInfo != null)
             {
-                if (userInfo.GivenName != null && userInfo.FamilyName != null)
-                {
-                    userName = userInfo.GivenName + " " + userInfo.FamilyName;
-                }
-                else if (userInfo.FamilyName != null)
-                {
-                    userName = userInfo.FamilyName;
-                }
-                else if (userInfo.GivenName != null)
-                {
-                    userName = userInfo.GivenName;
-                }
-                else if (userInfo.UniqueId != null)
-                {
-                    userName = userInfo.UniqueId;
-                }
+                userName = userInfo.Username;
             }
 
             if (userName == null)
