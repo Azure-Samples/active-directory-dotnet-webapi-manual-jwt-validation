@@ -127,6 +127,7 @@ namespace TodoListService_ManualJwt
 
                 // Supports both the Azure AD V1 and V2 endpoint
                 ValidIssuers = new[] { issuer, $"{issuer}/v2.0" },
+                IssuerValidator = AadIssuerValidator.GetIssuerValidator(authority).ValidateAadIssuer,
                 IssuerSigningKeys = signingKeys
             };
 
