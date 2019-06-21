@@ -15,19 +15,19 @@ endpoint: AAD v2.0
 
 A Web API that accepts bearer token is secured by [validating the token](https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens#validating-tokens) they receive from callers. When a developer generates a skeleton Web API code using [Visual Studio](https://aka.ms/vsdownload), token validation libraries and code to carry out basic token validation is automatically generated in the project. An example of the generated code using the [asp.net security middleware](https://github.com/aspnet/Security) and [Microsoft Identity Model Extension for .NET](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) to validate tokens is provided below.
 
-    ```CSharp
-    public void ConfigureAuth(IAppBuilder app)
+```CSharp
+public void ConfigureAuth(IAppBuilder app)
+{
+    app.UseWindowsAzureActiveDirectoryBearerAuthentication(
+        new WindowsAzureActiveDirectoryBearerAuthenticationOptions
         {
-            app.UseWindowsAzureActiveDirectoryBearerAuthentication(
-                new WindowsAzureActiveDirectoryBearerAuthenticationOptions
-                {
-                    Tenant = ConfigurationManager.AppSettings["ida:Tenant"],
-                    TokenValidationParameters = new TokenValidationParameters {
-                         ValidAudience = ConfigurationManager.AppSettings["ida:Audience"]
-                    },
-                });
-        }
-    ```
+            Tenant = ConfigurationManager.AppSettings["ida:Tenant"],
+            TokenValidationParameters = new TokenValidationParameters {
+                    ValidAudience = ConfigurationManager.AppSettings["ida:Audience"]
+            },
+        });
+}
+```
 
 The code above will validate the issuer, audience, and the signing tokens, which is usually sufficient for most scenarios. But often the developer's requirements are more than what the defaults provide. Examples of these requirements can be:
 
