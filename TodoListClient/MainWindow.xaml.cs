@@ -1,7 +1,7 @@
 ﻿/*
  The MIT License (MIT)
 
-Copyright (c) 2015 Microsoft Corporation
+Copyright (c) 2018 Microsoft Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,19 +20,18 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-*/
-
+ */
 
 using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+
 // The following using statements were added for this sample.
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.InteropServices;
 using System.Web.Script.Serialization;
 using System.Windows;
 
@@ -51,9 +50,10 @@ namespace TodoListClient
         // The Authority is the sign-in URL of the tenant.
         //
         private static string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
+
         private static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
         private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
-        
+
         private static string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
 
         //
@@ -61,15 +61,17 @@ namespace TodoListClient
         // To contact the To Do list service we need it's URL as well.
         //
         private static string todoListResourceId = ConfigurationManager.AppSettings["todo:TodoListResourceId"];
+
         private static string todoListBaseAddress = ConfigurationManager.AppSettings["todo:TodoListBaseAddress"];
-        public static string [] scopes = { $"{todoListResourceId}/{ConfigurationManager.AppSettings["todo:TodoListScope"]}" };
+        public static string[] scopes = { $"{todoListResourceId}/{ConfigurationManager.AppSettings["todo:TodoListScope"]}" };
 
         private HttpClient httpClient = new HttpClient();
         private readonly IPublicClientApplication _app;
 
         // Button strings
-        const string signInString = "Sign In";
-        const string clearCacheString = "Clear Cache";
+        private const string signInString = "Sign In";
+
+        private const string clearCacheString = "Clear Cache";
 
         public MainWindow()
         {
@@ -100,7 +102,7 @@ namespace TodoListClient
             // Get an access token to call the ToDo service.
             //
             AuthenticationResult result = null;
-           
+
             try
             {
                 result = await _app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
@@ -145,7 +147,6 @@ namespace TodoListClient
 
             if (response.IsSuccessStatusCode)
             {
-
                 // Read the response and databind to the GridView to display To Do items.
                 string s = await response.Content.ReadAsStringAsync();
                 JavaScriptSerializer serializer = new JavaScriptSerializer();
@@ -181,7 +182,7 @@ namespace TodoListClient
                 MessageBox.Show("Please enter a value for the To Do item name");
                 return;
             }
-            
+
             //
             // Get an access token to call the To Do service.
             //
@@ -214,7 +215,6 @@ namespace TodoListClient
                     UserName.Content = Properties.Resources.UserNotSignedIn;
                     MessageBox.Show("Unexpected error: " + message);
                 });
-
 
                 return;
             }
@@ -304,7 +304,6 @@ namespace TodoListClient
 
                 UserName.Content = Properties.Resources.UserNotSignedIn;
             }
-
         }
 
         // Set user name to text box

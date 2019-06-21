@@ -7,13 +7,13 @@ client: .NET Desktop App (WPF)
 service: ASP.NET Web API
 endpoint: AAD v2.0
 ---
-# How to manually validating a JWT access token using Microsoft identity platform (formerly Azure Active Directory for developers)
+# How to manually validate a JWT access token using Microsoft identity platform (formerly Azure Active Directory for developers)
 
 ![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
 
 ## About this sample
 
-A Web API is secured by [validating the token](https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens#validating-tokens) they receive from callers. When a developer generates a skeleton Web API code using [Visual Studio](https://aka.ms/vsdownload), token validation libraries and code to carry out basic token validation is automatically generated in the project. An example of the generated code using the [asp.net security middleware](https://github.com/aspnet/Security) and [Microsoft Identity Model Extension for .NET](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) to validate tokens is provided below.
+A Web API that accepts bearer token is secured by [validating the token](https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens#validating-tokens) they receive from callers. When a developer generates a skeleton Web API code using [Visual Studio](https://aka.ms/vsdownload), token validation libraries and code to carry out basic token validation is automatically generated in the project. An example of the generated code using the [asp.net security middleware](https://github.com/aspnet/Security) and [Microsoft Identity Model Extension for .NET](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) to validate tokens is provided below.
 
     ```CSharp
     public void ConfigureAuth(IAppBuilder app)
@@ -29,7 +29,7 @@ A Web API is secured by [validating the token](https://docs.microsoft.com/en-us/
         }
     ```
 
-The code above will validate the issuer,  audience, and the signing tokens, but often the developer's requirements are more than what the defaults provide. Examples of these requirements can be:
+The code above will validate the issuer, audience, and the signing tokens, which is usually sufficient for most scenarios. But often the developer's requirements are more than what the defaults provide. Examples of these requirements can be:
 
 - Restricting the Web API to one or more Apps (App IDs)
 - Restricting the Web API to just one or more tenants (Issuers)
@@ -322,7 +322,7 @@ If you are using this sample with an Azure AD B2C custom policy, you might want 
 
 Use [Stack Overflow](http://stackoverflow.com/questions/tagged/msal) to get support from the community.
 Ask your questions on Stack Overflow first and browse existing issues to see if someone has asked your question before.
-Make sure that your questions or comments are tagged with [`adal` `msal` `dotnet`].
+Make sure that your questions or comments are tagged with [`adal` `msal` `dotnet` `azure-active-directory`].
 
 If you find a bug in the sample, please raise the issue on [GitHub Issues](../../issues).
 

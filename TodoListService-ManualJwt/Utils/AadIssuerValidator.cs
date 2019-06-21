@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ***********************************************************************************************/
 
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -29,10 +33,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json;
 
 namespace TodoListService_ManualJwt
 {
@@ -45,6 +45,7 @@ namespace TodoListService_ManualJwt
         /// A list of all Issuers across the various Azure AD instances
         /// </summary>
         private readonly SortedSet<string> _issuerAliases;
+
         private const string _fallBackAuthority = "https://login.microsoftonline.com/";
         private static IDictionary<string, AadIssuerValidator> _issuerValidators = new ConcurrentDictionary<string, AadIssuerValidator>();
         private static string _azureADIssuerMetadataUrl = "https://login.microsoftonline.com/common/discovery/instance?authorization_endpoint=https://login.microsoftonline.com/common/oauth2/v2.0/authorize&api-version=1.1";
@@ -77,7 +78,7 @@ namespace TodoListService_ManualJwt
                 string authorityHost;
                 try
                 {
-                     authorityHost = new Uri(aadAuthority).Authority;
+                    authorityHost = new Uri(aadAuthority).Authority;
                 }
                 catch
                 {
@@ -114,7 +115,6 @@ namespace TodoListService_ManualJwt
 
             if (validationParameters == null)
                 throw new ArgumentNullException(nameof(validationParameters));
-
 
             string tenantId = GetTenantIdFromToken(securityToken);
             if (string.IsNullOrWhiteSpace(tenantId))
@@ -168,7 +168,7 @@ namespace TodoListService_ManualJwt
             }
 
             // brentsch - todo, TryGetPayloadValue is available in 5.5.0
-            if (securityToken is JsonWebToken  jsonWebToken)
+            if (securityToken is JsonWebToken jsonWebToken)
             {
                 var tid = jsonWebToken.GetPayloadValue<string>(ClaimConstants.Tid);
                 if (tid != null)

@@ -56,7 +56,7 @@ This function removes the Azure AD applications for the sample. These applicatio
     {
         Remove-AzureADApplication -ObjectId $apps.ObjectId
     }
-    Get-AzureRmADServicePrincipal -SearchString "TodoListService-ManualJwt" | ForEach-Object {Remove-AzureRmADServicePrincipal -ObjectId $_.Id -Confirm:$false}
+    # Get-AzureRmADServicePrincipal -SearchString "TodoListService-ManualJwt" | ForEach-Object {Remove-AzureRmADServicePrincipal -ObjectId $_.Id -Confirm:$false}
     Write-Host "Removed TodoListService-ManualJwt."
 
     Write-Host "Removing 'client' (TodoListClient-ManualJwt) if needed"
@@ -66,7 +66,7 @@ This function removes the Azure AD applications for the sample. These applicatio
     {
         Remove-AzureADApplication -ObjectId $apps.ObjectId
     }
-    Get-AzureRmADServicePrincipal -SearchString "TodoListClient-ManualJwt" | ForEach-Object {Remove-AzureRmADServicePrincipal -ObjectId $_.Id -Confirm:$false}
+    # Get-AzureRmADServicePrincipal -SearchString "TodoListClient-ManualJwt" | ForEach-Object {Remove-AzureRmADServicePrincipal -ObjectId $_.Id -Confirm:$false}
     Write-Host "Removed TodoListClient-ManualJwt."
 
 }

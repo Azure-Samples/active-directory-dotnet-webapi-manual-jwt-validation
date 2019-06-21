@@ -25,15 +25,14 @@
 //
 //------------------------------------------------------------------------------
 
+using Microsoft.Identity.Client;
 using System.IO;
 using System.Security.Cryptography;
-using Microsoft.Identity.Client;
 
 namespace TodoListClient
 {
-    static class TokenCacheHelper
+    internal static class TokenCacheHelper
     {
- 
         /// <summary>
         /// Path to the token cache
         /// </summary>
@@ -62,13 +61,14 @@ namespace TodoListClient
                 {
                     // reflect changes in the persistent store
                     File.WriteAllBytes(CacheFilePath,
-                                       ProtectedData.Protect(args.TokenCache.SerializeMsalV3(), 
-                                                             null, 
+                                       ProtectedData.Protect(args.TokenCache.SerializeMsalV3(),
+                                                             null,
                                                              DataProtectionScope.CurrentUser)
                                       );
                 }
             }
         }
+
         internal static void EnableSerialization(ITokenCache tokenCache)
         {
             tokenCache.SetBeforeAccess(BeforeAccessNotification);
