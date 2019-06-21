@@ -43,7 +43,7 @@ This sample demonstrates how to manually process a JWT access token in a web API
 
 ## Scenario: protecting a Web API - acquiring a token for the protected Web API
 
-When you want to protect a Web API, you request your clients to get a [Security token](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-dev-glossary#security-token) for your API, and you validate it. Usually, for ASP.NET applications this validation is delegated to the OWIN middleware, but you can also validate it yourself, leveraging the ``Microsoft.IdentityModel.Tokens.Jwt`` library.
+When you want to protect a Web API, you request your clients to get a [Security token](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-dev-glossary#security-token) for your API, and you validate it. Usually, for ASP.NET applications this validation is delegated to the OWIN middleware, but you can also validate it yourself, leveraging the ``System.IdentityModel.Tokens.Jwt`` library.
 
 ### Token Validation
 
@@ -235,7 +235,7 @@ First, in Visual Studio 2017 create an empty solution to host the projects.  The
 1. In Visual Studio, create a new `Visual C#` `ASP.NET Web Application (.NET Framework)`. Choose `Web Api` in the next screen. Leave the project's chosen authentication mode as the default, that is, `No Authentication`".
 2. Set SSL Enabled to be True. Note the SSL URL.
 3. In the project properties, Web properties, set the Project Url to be the SSL URL.
-4. Add the latest stable JSON Web Token Handler For the Microsoft .Net Framework 4.5 NuGet, Microsoft.IdentityModel.Tokens.Jwt, version 4.x to the project.  Note:  Version 5.x will not work with this sample.
+4. Add the latest stable JSON Web Token Handler For the Microsoft .Net Framework 4.5 NuGet, System.IdentityModel.Tokens.Jwt, version 4.x to the project.  Note:  Version 5.x will not work with this sample.
 5. Add an assembly reference to `System.IdentityModel`.
 6. In the `Models` folder, add a new class called `TodoItem.cs`.  Copy the implementation of TodoItem from this sample into the class.
 7. Add a new, empty, Web API 2 controller called `TodoListController`.
