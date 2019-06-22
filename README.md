@@ -11,6 +11,12 @@ endpoint: AAD v2.0
 
 ![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
 
+> You might also be interested in the following newer sample: https://github.com/azure-samples/ms-identity-aspnetcore-webapp-tutorial
+>
+> This newer sample takes advantage of the Microsoft identity platform (formerly Azure AD v2.0).
+>
+> While still in public preview, every component is supported in production environments.
+
 ## About this sample
 
 A Web API that accepts bearer token is secured by [validating the token](https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens#validating-tokens) they receive from callers. When a developer generates a skeleton Web API code using [Visual Studio](https://aka.ms/vsdownload), token validation libraries and code to carry out basic token validation is automatically generated in the project. An example of the generated code using the [asp.net security middleware](https://github.com/aspnet/Security) and [Microsoft Identity Model Extension for .NET](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) to validate tokens is provided below.
