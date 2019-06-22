@@ -36,6 +36,9 @@ namespace TodoListService_ManualJwt.Controllers
 {
     public class TodoListController : ApiController
     {
+        private string ScopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
+        private string ScopeClaimValue = "user_impersonation";
+
         //
         // To Do items list for all users.  Since the list is stored in memory, it will go away if the service is cycled.
         //
@@ -44,14 +47,7 @@ namespace TodoListService_ManualJwt.Controllers
         // GET api/todolist
         public IEnumerable<TodoItem> Get()
         {
-            //
-            // The Scope claim tells you what permissions the client application has in the service.
-            // In this case we look for a scope value of user_impersonation, or full access to the service as the user.
-            //
-            if (ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/scope").Value != "user_impersonation")
-            {
-                throw new HttpResponseException(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized, ReasonPhrase = "The Scope claim does not contain 'user_impersonation' or scope claim not found" });
-            }
+            this.CheckExpectedClaim();
 
             // A user's To Do list is keyed off of the NameIdentifier claim, which contains an immutable, unique identifier for the user.
             Claim subject = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier);
@@ -64,14 +60,23 @@ namespace TodoListService_ManualJwt.Controllers
         // POST api/todolist
         public void Post(TodoItem todo)
         {
-            if (ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/scope").Value != "user_impersonation")
-            {
-                throw new HttpResponseException(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized, ReasonPhrase = "The Scope claim does not contain 'user_impersonation' or scope claim not found" });
-            }
+            this.CheckExpectedClaim();
 
             if (null != todo && !string.IsNullOrWhiteSpace(todo.Title))
             {
                 todoBag.Add(new TodoItem { Title = todo.Title, Owner = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value });
+            }
+        }
+
+        private void CheckExpectedClaim()
+        {
+            //
+            // The Scope claim tells you what permissions the client application has in the service.
+            // In this case we look for a scope value of user_impersonation, or full access to the service as the user.
+            //
+            if (!ClaimsPrincipal.Current.HasClaim(ScopeClaimType, ScopeClaimValue))
+            {
+                throw new HttpResponseException(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized, ReasonPhrase = "The Scope claim does not contain 'user_impersonation' or scope claim not found" });
             }
         }
     }
