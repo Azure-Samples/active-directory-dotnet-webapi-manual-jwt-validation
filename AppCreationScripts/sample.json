@@ -1,9 +1,11 @@
 {
   "Sample": {
-    "Title": "Manually validating a JWT access token in a web API",
+    "Title": "How to manually validate a JWT access token using Microsoft identity platform (formerly Azure Active Directory for developers)",
     "Level": 300,
-    "Client": ".NET 4.5 Desktop App (WPF)",
-    "Service": "ASP.NET Web API"
+    "Client": ".NET Desktop App (WPF)",
+    "Service": "ASP.NET Web API",
+    "RepositoryUrl": "active-directory-dotnet-webapi-manual-jwt-validation",
+    "Endpoint": "AAD v2.0"    
   },
 
   /*
@@ -14,11 +16,16 @@
       "Id": "service",
       "Name": "TodoListService-ManualJwt",
       "IsPublicClient": false,
+      "Kind": "WebApi",
+      "Audience": "AzureADMyOrg",
       "HomePage": "https://localhost:44324"
     },
     {
       "Id": "client",
       "Name": "TodoListClient-ManualJwt",
+      "Kind": "Desktop",
+      "Audience": "AzureADMyOrg",
+      "ReplyUrls": "urn:ietf:wg:oauth:2.0:oob,https://login.microsoftonline.com/common/oauth2/nativeclient",
       "IsPublicClient": true,
       "RequiredResourcesAccess": [
         {
@@ -47,7 +54,7 @@
         },
         {
           "key": "ida:Audience",
-          "value": "service.IdentifierUris"
+          "value": "$serviceIdentifierUri"
         },
         {
           "key": "ida:ClientId",
@@ -70,12 +77,8 @@
           "value": ".AppId"
         },
         {
-          "key": "ida:RedirectUri",
-          "value": ".ReplyUrls"
-        },
-        {
           "key": "todo:TodoListResourceId",
-          "value": "service.IdentifierUris"
+          "value": "$serviceIdentifierUri"
         },
         {
           "key": "todo:TodoListBaseAddress",

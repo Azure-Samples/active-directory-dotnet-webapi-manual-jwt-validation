@@ -1,13 +1,13 @@
 ---
 services: active-directory
 platforms: dotnet
-author: jmprieur
+author: kalyankrishna1
 level: 300
-client: .NET Desktop (WPF) 
-service: ASP.NET MVC Web API
-endpoint: AAD V1
+client: .NET Desktop App (WPF)
+service: ASP.NET Web API
+endpoint: AAD v2.0
 ---
-# Manually validating a JWT access token in a web API
+# How to manually validate a JWT access token using Microsoft identity platform (formerly Azure Active Directory for developers)
 
 ![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
 
@@ -18,6 +18,30 @@ endpoint: AAD V1
 > While still in public preview, every component is supported in production environments.
 
 ## About this sample
+
+A Web API that accepts bearer token is secured by [validating the token](https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens#validating-tokens) they receive from callers. When a developer generates a skeleton Web API code using [Visual Studio](https://aka.ms/vsdownload), token validation libraries and code to carry out basic token validation is automatically generated in the project. An example of the generated code using the [asp.net security middleware](https://github.com/aspnet/Security) and [Microsoft Identity Model Extension for .NET](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) to validate tokens is provided below.
+
+```CSharp
+public void ConfigureAuth(IAppBuilder app)
+{
+    app.UseWindowsAzureActiveDirectoryBearerAuthentication(
+        new WindowsAzureActiveDirectoryBearerAuthenticationOptions
+        {
+            Tenant = ConfigurationManager.AppSettings["ida:Tenant"],
+            TokenValidationParameters = new TokenValidationParameters {
+                    ValidAudience = ConfigurationManager.AppSettings["ida:Audience"]
+            },
+        });
+}
+```
+
+The code above will validate the issuer, audience, and the signing tokens, which is usually sufficient for most scenarios. But often the developer's requirements are more than what the defaults provide. Examples of these requirements can be:
+
+- Restricting the Web API to one or more Apps (App IDs)
+- Restricting the Web API to just one or more tenants (Issuers)
+- Implement custom authorization.
+
+> Always verify that the access token presented to the Web Api has the expected [scopes or roles](https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-protected-web-api-verification-scope-app-roles#verifying-scopes-in-apis-called-on-behalf-of-users)
 
 This sample demonstrates how to manually process a JWT access token in a web API using the JSON Web Token Handler For the Microsoft .Net Framework 4.5.  This sample is equivalent to the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample, except that, in the ``TodoListService``, instead of using OWIN middleware to process the token, the token is processed manually in application code.  The client, which demonstrates how to acquire a token for this protected API, is unchanged from the [NativeClient-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-native-desktop) sample.
 
@@ -33,9 +57,10 @@ A token represents the outcome of an authentication operation with some artifact
 
 With Azure Active Directory taking the full responsibility of verifying user's raw credentials, the token receiver's responsibility shifts from verifying raw credentials to verifying that their caller did indeed go through your identity provider of choice and successfully authenticated. The identity provider represents successful authentication operations by issuing a token, hence the job now becomes to validate that token.
 
-### What to validate 
-While you should always validate tokens issued to the resources (audience) that you are developing, your application will also obtain access tokens for other resources from AAD. AAD will provide an access token in whatever token format that is appropriate to that resource. 
-This access token itself should be treated like an opaque blob by your application, as your app isn’t the access token’s intended audience and thus your app should not bother itself with looking into the contents of this access token. 
+### What to validate?
+
+While you should always validate tokens issued to the resources (audience) that you are developing, your application will also obtain access tokens for other resources from AAD. AAD will provide an access token in whatever token format that is appropriate to that resource.
+This access token itself should be treated like an opaque blob by your application, as your app isn’t the access token’s intended audience and thus your app should not bother itself with looking into the contents of this access token.
 Your app should just pass it in the call to the resource. It's the called resource's responsibility to validate this access token.
 
 ### Validating the claims
@@ -66,78 +91,129 @@ To run this sample, you'll need:
 
 From your shell or command line:
 
-`git clone https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation.git`
+```Shell
+git clone https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation.git
+```
 
-> Given that the name of the sample is pretty long, and so are the name of the referenced NuGet packages, you might want to clone it in a folder close to the root of your hard drive, to avoid file size limitations on Windows.
+or download and extract the repository .zip file.
 
-### Step 2:  Register the sample with your Azure Active Directory tenant
+> Given that the name of the sample is quiet long, and so are the names of the referenced NuGet packages, you might want to clone it in a folder close to the root of your hard drive, to avoid file size limitations on Windows.
+
+### Step 2:  Register the sample application with your Azure Active Directory tenant
 
 There are two projects in this sample. Each needs to be separately registered in your Azure AD tenant. To register these projects, you can:
 
-- either follow the steps in the paragraphs below ([Step 2](#step-2--register-the-sample-with-your-azure-active-directory-tenant) and [Step 3](#step-3--configure-the-sample-to-use-your-azure-ad-tenant))
+- either follow the steps [Step 2: Register the sample with your Azure Active Directory tenant](#step-2-register-the-sample-with-your-azure-active-directory-tenant) and [Step 3:  Configure the sample to use your Azure AD tenant](#choose-the-azure-ad-tenant-where-you-want-to-create-your-applications)
 - or use PowerShell scripts that:
-  - **automatically** create for you the Azure AD applications and related objects (passwords, permissions, dependencies)
+  - **automatically** creates the Azure AD applications and related objects (passwords, permissions, dependencies) for you
   - modify the Visual Studio projects' configuration files.
 
-If you want to use this automation, read the instructions in [App Creation Scripts](./AppCreationScripts/AppCreationScripts.md)
+If you want to use this automation:
 
-#### First step: choose the Azure AD tenant where you want to create your applications
+1. On Windows, run PowerShell and navigate to the root of the cloned directory
+1. In PowerShell run:
+
+   ```PowerShell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+   ```
+
+1. Run the script to create your Azure AD application and configure the code of the sample application accordingly.
+1. In PowerShell run:
+
+   ```PowerShell
+   .\AppCreationScripts\Configure.ps1
+   ```
+
+   > Other ways of running the scripts are described in [App Creation Scripts](./AppCreationScripts/AppCreationScripts.md)
+
+1. Open the Visual Studio solution and click start to run the code.
+
+If you don't want to use this automation, follow the steps below.
+
+#### Choose the Azure AD tenant where you want to create your applications
 
 As a first step you'll need to:
 
-1. Sign in to the [Azure portal](https://portal.azure.com).
-1. On the top bar, click on your account, and then on **Switch Directory**. 
-1. Once the *Directory + subscription* pane opens, choose the Active Directory tenant where you wish to register your application, from the *Favorites* or *All Directories* list.
-1. Click on **All services** in the left-hand nav, and choose **Azure Active Directory**.
-
-> In the next steps, you might need the tenant name (or directory name) or the tenant ID (or directory ID). These are presented in the **Properties**
-of the Azure Active Directory window respectively as *Name* and *Directory ID*
+1. Sign in to the [Azure portal](https://portal.azure.com) using either a work or school account or a personal Microsoft account.
+1. If your account is present in more than one Azure AD tenant, select your profile at the top right corner in the menu on top of the page, and then **switch directory**.
+   Change your portal session to the desired Azure AD tenant.
 
 #### Register the service app (TodoListService-ManualJwt)
 
-1. In the  **Azure Active Directory** pane, click on **App registrations** and choose **New application registration**.
-1. Enter a friendly name for the application, for example 'TodoListService-ManualJwt' and select 'Web app / API' as the *Application Type*.
-1. For the *sign-on URL*, enter the base URL for the sample, which is by default `https://localhost:44324`.
-1. Click on **Create** to create the application.
-1. In the succeeding page, Find the *Application ID* value and copy it to the clipboard. You'll need it to configure the Visual Studio configuration file for this project.
-1. Then click on **Settings**, and choose **Properties**.
-1. For the App ID URI, replace the guid in the generated URI 'https://\<your_tenant_name\>/\<guid\>', with the name of your service, for example, 'https://\<your_tenant_name\>/TodoListService-ManualJwt' (replacing `<your_tenant_name>` with the name of your Azure AD tenant)
+1. Navigate to the Microsoft identity platform for developers [App registrations](https://go.microsoft.com/fwlink/?linkid=2083908) page.
+1. Select **New registration**.
+1. When the **Register an application page** appears, enter your application's registration information:
+   - In the **Name** section, enter a meaningful application name that will be displayed to users of the app, for example `TodoListService-ManualJwt`.
+   - Leave **Supported account types** on the default setting of **Accounts in this organizational directory only**.
+1. Select **Register** to create the application.
+1. On the app **Overview** page, find the **Application (client) ID** value and record it for later. You'll need it to configure the Visual Studio configuration file for this project.
 
-#### Register the TodoListClient client app
+1. Select the **Expose an API** section, and:
+   - Select **Add a scope**
+   - accept the proposed Application ID URI (api://{clientId}) by selecting **Save and Continue**. Note the AppID URI
+   - Enter the following parameters
+     - for **Scope name** use `user_impersonation`
+     - Keep **Admins and users** for **Who can consent**
+     - in **Admin consent display name** type `Access TodoListService-ManualJwt as a user`
+     - in **Admin consent description** type `Accesses the TodoListService-ManualJwt Web API as a user`
+     - in **User consent display name** type `Access TodoListService-ManualJwt as a user`
+     - in **User consent description** type `Accesses the TodoListService-ManualJwt Web API as a user`
+     - Keep **State** as **Enabled**
+     - Select **Add scope**
 
-1. Click on **App registrations** and choose **New application registration**.
-1. Enter a friendly name for the application, for example 'TodoListClient-ManualJwt' and select 'Native' as the Application Type. For the redirect URI, enter `https://TodoListClient`. Please note that the Redirect URI will not be used in this sample, but it needs to be defined nonetheless. Click on **Create** to create the application.
-1. In the succeeding page, Find the **Application ID** value and copy it to the clipboard.
-1. Then click on **Settings** and choose **Properties**.
-1. Configure Permissions for your application - in the Settings menu, choose the **Required permissions** section, click on **Add**, then **Select an API**, and type 'TodoListService' in the textbox and hit enter. Select 'TodoListService-ManualJwt' from the results and click the 'Select' button. Then, click on  **Select Permissions** and select 'Access TodoListService-ManualJwt'. Click the 'Select' button again to close this screen. Click on **Done** to finish adding the permission.
+#### Register the client app (TodoListClient-ManualJwt)
+
+1. Navigate to the Microsoft identity platform for developers [App registrations](https://go.microsoft.com/fwlink/?linkid=2083908) page.
+1. Select **New registration**.
+1. When the **Register an application page** appears, enter your application's registration information:
+   - In the **Name** section, enter a meaningful application name that will be displayed to users of the app, for example `TodoListClient-ManualJwt`.
+   - Leave **Supported account types** on the default setting of **Accounts in this organizational directory only**.
+1. Select **Register** to create the application.
+1. On the app **Overview** page, find the **Application (client) ID** value and record it for later. You'll need it to configure the Visual Studio configuration file for this project.
+1. From the app's Overview page, select the **Authentication** section.
+   - In the Redirect URIs section, check the following two options.
+       - `urn:ietf:wg:oauth:2.0:oob`
+       - `https://login.microsoftonline.com/common/oauth2/nativeclient`   
+1. Select **Save**.
+1. Select the **API permissions** section
+   - Click the **Add a permission** button and then,
+   - Ensure that the **My APIs** tab is selected
+   - In the list of APIs, select the API `TodoListService-ManualJwt`.
+   - In the **Delegated permissions** section, ensure that the right permissions are checked: **Access 'TodoListService-ManualJwt'**. Use the search box if necessary.
+   - Select the **Add permissions** button
 
 ### Step 3:  Configure the sample to use your Azure AD tenant
 
-In the steps below, ClientID is the same as Application ID or AppId.
+In the steps below, "ClientID" is the same as "Application ID" or "AppId".
 
 Open the solution in Visual Studio to configure the projects
 
-#### Configure the TodoListService-ManualJwt project
+#### Configure the service project
+
+> Note: if you used the setup scripts, the changes below will have been applied for you
 
 1. Open the `TodoListService-ManualJwt\Web.Config` file
-1. Find the app key `ida:Tenant` and replace the existing value with your AAD tenant name.
-1. Find the app key `ida:Audience` and replace the existing value with the App ID URI you registered earlier for the TodoListService-ManualJwt app. For instance use `https://<your_tenant_name>/TodoListService-ManualJwt`, where `<your_tenant_name>` is the name of your Azure AD tenant.
+1. Find the app key `ida:Tenant` and replace the existing value with your Azure AD tenant name.
+1. Find the app key `ida:Audience` and replace the existing value with the App ID URI noted earlier ('api://{clientId}).
 1. Find the app key `ida:ClientId` and replace the existing value with the application ID (clientId) of the `TodoListService-ManualJwt` application copied from the Azure portal.
 
-#### Configure the TodoListClient project
+#### Configure the client project
+
+> Note: if you used the setup scripts, the changes below will have been applied for you
 
 1. Open the `TodoListClient\App.Config` file
-1. Find the app key `ida:Tenant` and replace the existing value with your AAD tenant name.
+1. Find the app key `ida:Tenant` and replace the existing value with your Azure AD tenant name.
 1. Find the app key `ida:ClientId` and replace the existing value with the application ID (clientId) of the `TodoListClient-ManualJwt` application copied from the Azure portal.
-1. Find the app key `ida:RedirectUri` and replace the existing value with the Redirect URI for TodoListClient-ManualJwt app. For instance use `https://<your_tenant_name>/TodoListClient-ManualJwt`, where `<your_tenant_name>` is the name of your Azure AD tenant.
-1. Find the app key `todo:TodoListResourceId` and replace the existing value with the App ID URI you registered earlier for the TodoListService-ManualJwt app. For instance use `https://<your_tenant_name>/TodoListService-ManualJwt`, where `<your_tenant_name>` is the name of your Azure AD tenant.
+1. Find the app key `todo:TodoListResourceId` and replace the existing value with the App ID URI noted earlier ('api://{clientId})
 1. Find the app key `todo:TodoListBaseAddress` and replace the existing value with the base address of the TodoListService-ManualJwt project (by default `https://localhost:44324`).
 
 ### Step 4:  Run the sample
 
-Clean the solution, rebuild the solution, and run it. You might want to go into the solution properties and set both projects as startup projects, with the service project starting first.
+Clean the solution, rebuild the solution, and run it. You will need  go into the solution properties and set both projects as startup projects, with the service project starting first.
 
-Explore the sample by signing in, adding items to the To Do list, removing the user account, and starting again.  Notice that if you stop the application without removing the user account, the next time you run the application you won't be prompted to sign in again - that is the sample implements a persistent cache for ADAL, and remembers the tokens from the previous run.
+Explore the sample by signing in, adding items to the To Do list, removing the user account, and starting again.  Notice that if you stop the application without removing the user account, the next time you run the application you won't be prompted to sign in again - that is the sample implements a [persistent cache for MSAL](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/wiki/token-cache-serialization), and remembers the tokens from the previous run.
+
+> Did the sample not work for you as expected? Did you encounter issues trying this sample? Then please reach out to us using the [GitHub Issues](../../../../issues) page.
 
 ## About The Code
 
@@ -146,13 +222,13 @@ The manual JWT validation occurs in the [TokenValidationHandler](https://github.
 This method:
 
 1. gets the token from the Authorization headers
-2. verifies that the token has not expired
-3. gets the open ID configuration from the Azure AD discovery endpoint
-4. Sets the parameters to validate:
-- the audience - the application accepts both its App ID URI and its AppID/clientID
-- the valid issuers - the application accepts both Azure AD V1 and Azure AD V2
+1. verifies that the token has not expired
+1. gets the open ID configuration from the Azure AD discovery endpoint
+1. Sets the parameters to validate:
+    - the audience - the application accepts both its App ID URI and its AppID/clientID
+    - the valid issuers - the application accepts both Azure AD V1 and Azure AD V2
 
-5. Then it delegates to the `JwtSecurityTokenHandler` class (provided by the `System.IdentityModel.Tokens` library)
+1. Then it delegates to the `JwtSecurityTokenHandler` class (provided by the `Microsoft.IdentityModel.Tokens` library)
 
 the `TokenValidationHandler` class is registered with ASP.NET in the `TodoListService-ManualJwt/Global.asx.cs` file, in the [application_start()](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/4b80657c5506c8cb30af67b9f61bb6aa68dfca58/TodoListService-ManualJwt/Global.asax.cs#L54) method:
 
@@ -171,9 +247,11 @@ First, in Visual Studio 2017 create an empty solution to host the projects.  The
 7. Add a new, empty, Web API 2 controller called `TodoListController`.
 8. Copy the implementation of the TodoListController from this sample into the controller.
 9. Open Global.asax, and copy the implementation from this sample into the controller.  Note that a single line is added at the end of `Application_Start()`,
+
       ```CSharp
       GlobalConfiguration.Configuration.MessageHandlers.Add(new TokenValidationHandler());
       ```
+
 10. In `web.config` create keys for `ida:AADInstance`, `ida:Tenant`, and `ida:Audience` and set them accordingly.  For the global Azure cloud, the value of `ida:AADInstance` is `https://login.microsoftonline.com/{0}`.
 
 ### Creating the TodoListClient Project
@@ -185,7 +263,7 @@ First, in Visual Studio 2017 create an empty solution to host the projects.  The
 5. Add a new class to the project called `FileCache.cs`.  Copy the code from the sample project file of the same name into this class, completely replacing the code in the file in the new project.
 6. Copy the markup from `MainWindow.xaml` in the sample project into the file of the same name in the new project, completely replacing the markup in the file in the new project.
 7. Copy the code from `MainWindow.xaml.cs` in the sample project into the file of the same name in the new project, completely replacing the code in the file in the new project.
-8. In `app.config` create keys for `ida:AADInstance`, `ida:Tenant`, `ida:ClientId`, `ida:RedirectUri`, `todo:TodoListResourceId`, and `todo:TodoListBaseAddress` and set them accordingly.  For the global Azure cloud, the value of `ida:AADInstance` is `https://login.microsoftonline.com/{0}`.
+8. In `app.config` create keys for `ida:AADInstance`, `ida:Tenant`, `ida:ClientId`, `todo:TodoListResourceId`, and `todo:TodoListBaseAddress` and set them accordingly.  For the global Azure cloud, the value of `ida:AADInstance` is `https://login.microsoftonline.com/{0}`.
 
 Finally, in the properties of the solution itself, set both projects as startup projects.
 
@@ -197,22 +275,27 @@ This project has one WebApp / Web API projects. To deploy them to Azure Web Site
 - publish the Web App / Web APIs to the web site, and
 - update its client(s) to call the web site instead of IIS Express.
 
-### Create and Publish the `TodoListService-ManualJwt` to an Azure Web Site
+### Create and publish the `TodoListService-ManualJwt` to an Azure Web Site
 
 1. Sign in to the [Azure portal](https://portal.azure.com).
-2. Click **Create a resource** in the top left-hand corner, select **Web + Mobile** --> **Web App**, select the hosting plan and region, and give your web site a name, for example, `TodoListService-ManualJwt-contoso.azurewebsites.net`.  Click Create Web Site.
-3. Once the web site is created, click on it to manage it.  For this set of steps, download the publish profile by clicking **Get publish profile** and save it.  Other deployment mechanisms, such as from source control, can also be used.
-4. Switch to Visual Studio and go to the TodoListService project.  Right click on the project in the Solution Explorer and select **Publish**.  Click **Import Profile** on the bottom bar, and import the publish profile that you downloaded earlier.
-5. Click on **Settings** and in the `Connection tab`, update the Destination URL so that it is https, for example [https://TodoListService-ManualJwt-contoso.azurewebsites.net](https://TodoListService-ManualJwt-contoso.azurewebsites.net). Click Next.
-6. On the Settings tab, make sure `Enable Organizational Authentication` is NOT selected.  Click **Save**. Click on **Publish** on the main screen.
-7. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
+1. Click `Create a resource` in the top left-hand corner, select **Web** --> **Web App**, and give your web site a name, for example, `TodoListService-ManualJwt-contoso.azurewebsites.net`.
+1. Thereafter select the `Subscription`, `Resource Group`, `App service plan and Location`. `OS` will be **Windows** and `Publish` will be **Code**.
+1. Click `Create` and wait for the App Service to be created.
+1. Once you get the `Deployment succeeded` notification, then click on `Go to resource` to navigate to the newly created App service.
+1. Once the web site is created, locate it it in the **Dashboard** and click it to open **App Services** **Overview** screen.
+1. From the **Overview** tab of the App Service, download the publish profile by clicking the **Get publish profile** link and save it.  Other deployment mechanisms, such as from source control, can also be used.
+1. Switch to Visual Studio and go to the TodoListService-ManualJwt project.  Right click on the project in the Solution Explorer and select **Publish**.  Click **Import Profile** on the bottom bar, and import the publish profile that you downloaded earlier.
+1. Click on **Configure** and in the `Connection tab`, update the Destination URL so that it is a `https` in the home page url, for example [https://TodoListService-ManualJwt-contoso.azurewebsites.net](https://TodoListService-ManualJwt-contoso.azurewebsites.net). Click **Next**.
+1. On the Settings tab, make sure `Enable Organizational Authentication` is NOT selected.  Click **Save**. Click on **Publish** on the main screen.
+1. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
 
 ### Update the Active Directory tenant application registration for `TodoListService-ManualJwt`
 
-1. Navigate to the [Azure portal](https://portal.azure.com).
-2. On the top bar, click on your account and under the **Directory** list, choose the Active Directory tenant containing the `TodoListService-ManualJwt` application.
-3. On the applications tab, select the `TodoListService-ManualJwt` application.
-4. From the Settings -> Reply URLs menu, update the Sign-On URL, and Reply URL fields to the address of your service, for example [https://TodoListService-ManualJwt-contoso.azurewebsites.net](https://TodoListService-ManualJwt-contoso.azurewebsites.net). Save the configuration.
+1. Navigate back to to the [Azure portal](https://portal.azure.com).
+In the left-hand navigation pane, select the **Azure Active Directory** service, and then select **App registrations (Preview)**.
+1. In the resultant screen, select the `TodoListService-ManualJwt` application.
+1. From the *Branding* menu, update the **Home page URL**, to the address of your service, for example [https://TodoListService-ManualJwt-contoso.azurewebsites.net](https://TodoListService-ManualJwt-contoso.azurewebsites.net). Save the configuration.
+1. Add the same URL in the list of values of the *Authentication -> Redirect URIs* menu. If you have multiple redirect urls, make sure that there a new entry using the App service's Uri for each redirect url.
 
 ### Update the `TodoListClient-ManualJwt` to call the `TodoListService-ManualJwt` Running in Azure Web Sites
 
@@ -220,6 +303,9 @@ This project has one WebApp / Web API projects. To deploy them to Azure Web Site
 2. Open `TodoListClient\App.Config`.  Only one change is needed - update the `todo:TodoListBaseAddress` key value to be the address of the website you published,
    for example, [https://TodoListService-ManualJwt-contoso.azurewebsites.net](https://TodoListService-ManualJwt-contoso.azurewebsites.net).
 3. Run the client! If you are trying multiple different client types (for example, .Net, Windows Store, Android, iOS) you can have them all call this one published web API.
+
+> NOTE: Remember, the To Do list is stored in memory in this TodoListService sample. Azure Web Sites will spin down your web site if it is inactive, and your To Do list will get emptied.
+Also, if you increase the instance count of the web site, requests will be distributed among the instances. ToDo list will, therefore, not be the same on each instance.
 
 ## Azure Government Deviations
 
@@ -236,13 +322,13 @@ Once those changes have been accounted for, you should be able to run this sampl
 
 ## Troubleshooting
 
-If you are using this sample with an Azure AD B2C custom policy, you might want to read #22, and change step 3. in the [About the code](#about-the-code) paragraph.
+If you are using this sample with an Azure AD B2C custom policy, you might want to read #22, and change step 3. in the [About The Code](#about-the-code) paragraph.
 
 ## Community Help and Support
 
-Use [Stack Overflow](http://stackoverflow.com/questions/tagged/adal) to get support from the community.
+Use [Stack Overflow](http://stackoverflow.com/questions/tagged/msal) to get support from the community.
 Ask your questions on Stack Overflow first and browse existing issues to see if someone has asked your question before.
-Make sure that your questions or comments are tagged with [`adal` `dotnet`].
+Make sure that your questions or comments are tagged with [`adal` `msal` `dotnet` `azure-active-directory`].
 
 If you find a bug in the sample, please raise the issue on [GitHub Issues](../../issues).
 
@@ -256,13 +342,18 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 ## More information
 
-For more information on how to acquire a token in the client application, see ADAL.NET's conceptual documentation:
-
+- [Microsoft identity platform (Azure Active Directory for developers)](https://docs.microsoft.com/en-us/azure/active-directory/develop/)
+- [MSAL.NET's conceptual documentation](https://aka.ms/msal-net)
+- [Quickstart: Register an application with the Microsoft identity platform (Preview)](https://docs.microsoft.com/azure/active-directory/develop/quickstart-register-app)
+- [Quickstart: Configure a client application to access web APIs (Preview)](https://docs.microsoft.com/azure/active-directory/develop/quickstart-configure-app-access-web-apis)
 - [Recommended pattern to acquire a token](https://github.com/AzureAD/azure-activedirectory-library-for-dotnet/wiki/AcquireTokenSilentAsync-using-a-cached-token#recommended-pattern-to-acquire-a-token)
+- [Token Cache serialization](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/wiki/token-cache-serialization)
 
 For more information about token validation, see:
 
-- [JwtSecurityTokenHandler.ValidateToken Method (JwtSecurityToken)](https://msdn.microsoft.com/en-us/library/dn451163(v=vs.114).aspx)
-- [Principles of Token Validation](http://www.cloudidentity.com/blog/2014/03/03/principles-of-token-validation/)
+- [Principles of Token validation](https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens#validating-tokens)
+- [Microsoft Identity Model Extension for .NET](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet)
+- [Protect a web API](https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-protected-web-api-overview)
+- [Verify scopes and roles in Web API](https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-protected-web-api-verification-scope-app-roles)
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).

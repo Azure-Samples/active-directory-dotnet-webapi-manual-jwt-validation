@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2036
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TodoListClient", "TodoListClient\TodoListClient.csproj", "{005E6BB1-F422-4366-B548-1BDE150F0073}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TodoListClient-ManualJwt", "TodoListClient\TodoListClient-ManualJwt.csproj", "{005E6BB1-F422-4366-B548-1BDE150F0073}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TodoListService-ManualJwt", "TodoListService-ManualJwt\TodoListService-ManualJwt.csproj", "{67104329-E1DA-4A37-A556-834684DBC409}"
 EndProject
