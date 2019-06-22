@@ -68,6 +68,7 @@ namespace TodoListService_ManualJwt.Controllers
             }
         }
 
+        /// <summary>Checks that the expected claim that proves that the Api was provisioned in a target tenant and consented by an admin/user.</summary>
         private void CheckExpectedClaim()
         {
             //
