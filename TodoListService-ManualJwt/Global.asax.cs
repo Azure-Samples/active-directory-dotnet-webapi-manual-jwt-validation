@@ -26,6 +26,7 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
@@ -71,7 +72,7 @@ namespace TodoListService_ManualJwt
         private string _authority;
         private string _clientId;
         private ConfigurationManager<OpenIdConnectConfiguration> _configManager;
-
+        private string _tenant;
         private ISecurityTokenValidator _tokenValidator;
 
         public TokenValidationHandler()
@@ -79,8 +80,8 @@ namespace TodoListService_ManualJwt
             _audience = ConfigurationManager.AppSettings["ida:Audience"];
             _clientId = ConfigurationManager.AppSettings["ida:ClientId"];
             var aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
-            var tenant = ConfigurationManager.AppSettings["ida:Tenant"];
-            _authority = string.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+            _tenant = ConfigurationManager.AppSettings["ida:TenantId"];
+            _authority = string.Format(CultureInfo.InvariantCulture, aadInstance, _tenant);
             _configManager = new ConfigurationManager<OpenIdConnectConfiguration>($"{_authority}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever());
             _tokenValidator = new JwtSecurityTokenHandler();
         }
@@ -93,6 +94,9 @@ namespace TodoListService_ManualJwt
         /// <returns>A <see cref="HttpResponseMessage"/>.</returns>
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            // For debugging/development purposes, one can enable additional detail in exceptions by setting IdentityModelEventSource.ShowPII to true.
+            Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true;
+
             // check if there is a jwt in the authorization header, return 'Unauthorized' error if the token is null.
             if (request.Headers.Authorization == null || request.Headers.Authorization.Parameter == null)
                 return BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
@@ -104,10 +108,26 @@ namespace TodoListService_ManualJwt
             {
                 config = await _configManager.GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+#if DEBUG
+                return BuildResponseErrorMessage(HttpStatusCode.InternalServerError, ex.Message);
+#else
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+#endif
             }
+
+            // You can get a list of issuers for the various Azure AD deployments (global & sovereign) from the following endpoint
+            //https://login.microsoftonline.com/common/discovery/instance?authorization_endpoint=https://login.microsoftonline.com/common/oauth2/v2.0/authorize&api-version=1.1;
+
+            IList<string> validissuers = new List<string>()
+            {
+                $"https://login.microsoftonline.com/{_tenant}/",
+                $"https://login.microsoftonline.com/{_tenant}/v2.0",
+                $"https://login.windows.net/{_tenant}/",
+                $"https://login.microsoft.com/{_tenant}/",
+                $"https://sts.windows.net/{_tenant}/"
+            };
 
             // Initialize the token validation parameters
             TokenValidationParameters validationParameters = new TokenValidationParameters
@@ -116,7 +136,7 @@ namespace TodoListService_ManualJwt
                 ValidAudiences = new[] { _audience, _clientId },
 
                 // Support Azure AD V1 and V2 endpoints.
-                ValidIssuers = new[] { config.Issuer, $"{config.Issuer}/v2.0" },
+                ValidIssuers = validissuers,
                 IssuerSigningKeys = config.SigningKeys
             };
 
@@ -130,7 +150,11 @@ namespace TodoListService_ManualJwt
                 if (!claimsPrincipal.Claims.Any(x => x.Type == ClaimConstants.ScopeClaimType)
                    && !claimsPrincipal.Claims.Any(y => y.Type == ClaimConstants.RolesClaimType))
                 {
-                    throw new UnauthorizedAccessException("Neither scope or roles claim was found in the bearer token.");
+#if DEBUG
+                    return BuildResponseErrorMessage(HttpStatusCode.Forbidden, "Neither 'scope' or 'roles' claim was found in the bearer token.");
+#else
+                    return BuildResponseErrorMessage(HttpStatusCode.Forbidden);
+#endif
                 }
 #pragma warning restore 1998
 
@@ -147,22 +171,30 @@ namespace TodoListService_ManualJwt
 
                 return await base.SendAsync(request, cancellationToken);
             }
-            catch (SecurityTokenValidationException)
+            catch (SecurityTokenValidationException stex)
             {
+#if DEBUG
+                return BuildResponseErrorMessage(HttpStatusCode.Unauthorized, stex.Message);
+#else
                 return BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
+#endif
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+#if DEBUG
+                return BuildResponseErrorMessage(HttpStatusCode.InternalServerError, ex.Message);
+#else
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+#endif
             }
         }
 
-        private HttpResponseMessage BuildResponseErrorMessage(HttpStatusCode statusCode)
+        private HttpResponseMessage BuildResponseErrorMessage(HttpStatusCode statusCode, string error_description = "")
         {
             var response = new HttpResponseMessage(statusCode);
 
             // The Scheme should be "Bearer", authorization_uri should point to the tenant url and resource_id should point to the audience.
-            var authenticateHeader = new AuthenticationHeaderValue("Bearer", "authorization_uri=\"" + _authority + "\"" + "," + "resource_id=" + _audience);
+            var authenticateHeader = new AuthenticationHeaderValue("Bearer", "authorization_uri=\"" + _authority + "\"" + "," + "resource_id=" + _audience + $",error_description={error_description}");
             response.Headers.WwwAuthenticate.Add(authenticateHeader);
             return response;
         }

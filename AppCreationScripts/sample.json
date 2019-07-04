@@ -69,8 +69,8 @@
       "SettingFile": "\\..\\TodoListClient\\App.Config",
       "Mappings": [
         {
-          "key": "ida:Tenant",
-          "value": "$tenantName"
+          "key": "ida:TenantId",
+          "value": "$tenantId"
         },
         {
           "key": "ida:ClientId",

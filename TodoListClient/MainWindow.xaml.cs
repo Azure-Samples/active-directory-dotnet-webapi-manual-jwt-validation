@@ -198,7 +198,7 @@ namespace TodoListClient
             // There is no access token in the cache, so prompt the user to sign-in.
             catch (MsalUiRequiredException)
             {
-                MessageBox.Show("Please re-sign");
+                MessageBox.Show("Please re-signIn");
                 SignInButton.Content = signInString;
             }
             catch (MsalException ex)
@@ -269,7 +269,7 @@ namespace TodoListClient
             //
             try
             {
-                // Force a sign-in (PromptBehavior.Always), as the ADAL web browser might contain cookies for the current user, and using .Auto
+                // Force a sign-in (PromptBehavior.Always), as the MSAL web browser might contain cookies for the current user, and using .Auto
                 // would re-sign-in the same user
                 var result = await _app.AcquireTokenInteractive(scopes)
                     .WithAccount(accounts.FirstOrDefault())
@@ -303,6 +303,7 @@ namespace TodoListClient
                 }
 
                 UserName.Content = Properties.Resources.UserNotSignedIn;
+                //SignInButton.Content = signInString;
             }
         }
 
