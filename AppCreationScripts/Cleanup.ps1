@@ -5,7 +5,7 @@ param(
     [string] $tenantId
 )
 
-if ((Get-Module -ListAvailable -Name "AzureAD") -eq $null) { 
+if ($null -eq (Get-Module -ListAvailable -Name "AzureAD")) { 
     Install-Module "AzureAD" -Scope CurrentUser 
 } 
 Import-Module AzureAD
@@ -44,7 +44,7 @@ This function removes the Azure AD applications for the sample. These applicatio
         $tenantId = $creds.Tenant.Id
     }
     $tenant = Get-AzureADTenantDetail
-    $tenantName =  ($tenant.VerifiedDomains | Where { $_._Default -eq $True }).Name
+    $tenantName =  ($tenant.VerifiedDomains | Where-Object { $_._Default -eq $True }).Name
     
     # Removes the applications
     Write-Host "Cleaning-up applications from tenant '$tenantName'"
@@ -56,9 +56,15 @@ This function removes the Azure AD applications for the sample. These applicatio
     {
         Remove-AzureADApplication -ObjectId $apps.ObjectId
     }
-    # Get-AzureRmADServicePrincipal -SearchString "TodoListService-ManualJwt" | ForEach-Object {Remove-AzureRmADServicePrincipal -ObjectId $_.Id -Confirm:$false}
-    Write-Host "Removed TodoListService-ManualJwt."
 
+    foreach ($app in $apps) 
+    {
+        Remove-AzureADApplication -ObjectId $app.ObjectId
+        Write-Host "Removed TodoListService-ManualJwt.."
+    }
+    # also remove service principals of this app
+    Get-AzureADServicePrincipal -filter "DisplayName eq 'TodoListService-ManualJwt'" | ForEach-Object {Remove-AzureADServicePrincipal -ObjectId $_.Id -Confirm:$false}
+    
     Write-Host "Removing 'client' (TodoListClient-ManualJwt) if needed"
     Get-AzureADApplication -Filter "DisplayName eq 'TodoListClient-ManualJwt'"  | ForEach-Object {Remove-AzureADApplication -ObjectId $_.ObjectId }
     $apps = Get-AzureADApplication -Filter "DisplayName eq 'TodoListClient-ManualJwt'"
@@ -66,9 +72,15 @@ This function removes the Azure AD applications for the sample. These applicatio
     {
         Remove-AzureADApplication -ObjectId $apps.ObjectId
     }
-    # Get-AzureRmADServicePrincipal -SearchString "TodoListClient-ManualJwt" | ForEach-Object {Remove-AzureRmADServicePrincipal -ObjectId $_.Id -Confirm:$false}
-    Write-Host "Removed TodoListClient-ManualJwt."
 
+    foreach ($app in $apps) 
+    {
+        Remove-AzureADApplication -ObjectId $app.ObjectId
+        Write-Host "Removed TodoListClient-ManualJwt.."
+    }
+    # also remove service principals of this app
+    Get-AzureADServicePrincipal -filter "DisplayName eq 'TodoListClient-ManualJwt'" | ForEach-Object {Remove-AzureADServicePrincipal -ObjectId $_.Id -Confirm:$false}
+    
 }
 
 Cleanup -Credential $Credential -tenantId $TenantId

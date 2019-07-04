@@ -36,9 +36,6 @@ namespace TodoListService_ManualJwt.Controllers
 {
     public class TodoListController : ApiController
     {
-        private string ScopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
-        private string ScopeClaimValue = "user_impersonation";
-
         //
         // To Do items list for all users.  Since the list is stored in memory, it will go away if the service is cycled.
         //
@@ -74,10 +71,10 @@ namespace TodoListService_ManualJwt.Controllers
             //
             // The Scope claim tells you what permissions the client application has in the service.
             // In this case we look for a scope value of user_impersonation, or full access to the service as the user.
-            //
-            if (!ClaimsPrincipal.Current.HasClaim(ScopeClaimType, ScopeClaimValue))
+
+            if (!ClaimsPrincipal.Current.HasClaim(ClaimConstants.ScopeClaimType, ClaimConstants.ScopeClaimValue))
             {
-                throw new HttpResponseException(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized, ReasonPhrase = "The Scope claim does not contain 'user_impersonation' or scope claim not found" });
+                throw new HttpResponseException(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized, ReasonPhrase = $"The Scope claim does not contain '{ClaimConstants.ScopeClaimValue}' or scope claim not found" });
             }
         }
     }

@@ -22,10 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Configuration;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -37,9 +41,6 @@ using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
-using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
 
 namespace TodoListService_ManualJwt
 {
@@ -56,6 +57,8 @@ namespace TodoListService_ManualJwt
         }
     }
 
+    /// <summary>This Message handler inspects incoming access tokens and validates them.</summary>
+    /// <seealso cref="System.Net.Http.DelegatingHandler" />
     internal class TokenValidationHandler : DelegatingHandler
     {
         //
@@ -63,13 +66,12 @@ namespace TodoListService_ManualJwt
         // The Tenant is the name of the tenant in which this application is registered.
         // The Authority is the sign-in URL of the tenant.
         // The Audience is the value of one of the 'aud' claims the service expects to find in token to assure the token is addressed to it.
-        //
 
         private string _audience;
         private string _authority;
         private string _clientId;
         private ConfigurationManager<OpenIdConnectConfiguration> _configManager;
-        private const string _scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
+
         private ISecurityTokenValidator _tokenValidator;
 
         public TokenValidationHandler()
@@ -81,7 +83,7 @@ namespace TodoListService_ManualJwt
             _authority = string.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
             _configManager = new ConfigurationManager<OpenIdConnectConfiguration>($"{_authority}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever());
             _tokenValidator = new JwtSecurityTokenHandler();
-    }
+        }
 
         /// <summary>
         /// Checks that incoming requests have a valid access token, and sets the current user identity using that access token.
@@ -91,10 +93,12 @@ namespace TodoListService_ManualJwt
         /// <returns>A <see cref="HttpResponseMessage"/>.</returns>
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            // check there is a jwt in the authorization header, return 'Unauthorized' error if the token is null.
+            // check if there is a jwt in the authorization header, return 'Unauthorized' error if the token is null.
             if (request.Headers.Authorization == null || request.Headers.Authorization.Parameter == null)
                 return BuildResponseErrorMessage(HttpStatusCode.Unauthorized);
 
+            // Pull OIDC discovery document from Azure AD. For example, the tenant-independent version of the document is located
+            // at https://login.microsoftonline.com/common/.well-known/openid-configuration.
             OpenIdConnectConfiguration config = null;
             try
             {
@@ -105,21 +109,30 @@ namespace TodoListService_ManualJwt
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
 
+            // Initialize the token validation parameters
             TokenValidationParameters validationParameters = new TokenValidationParameters
             {
-                // We accept both the App Id URI and the AppId of this service application
-                ValidAudiences = new[] { audience, clientId },
+                // App Id URI and AppId of this service application are both valid audiences.
+                ValidAudiences = new[] { _audience, _clientId },
 
-                // Supports both the Azure AD V1 and V2 endpoint
-                ValidIssuers = new[] { issuer, $"{issuer}/v2.0" },
-                IssuerValidator = AadIssuerValidator.GetIssuerValidator(authority).ValidateAadIssuer,
-                IssuerSigningKeys = signingKeys
+                // Support Azure AD V1 and V2 endpoints.
+                ValidIssuers = new[] { config.Issuer, $"{config.Issuer}/v2.0" },
+                IssuerSigningKeys = config.SigningKeys
             };
 
             try
             {
                 // Validate token.
                 var claimsPrincipal = _tokenValidator.ValidateToken(request.Headers.Authorization.Parameter, validationParameters, out SecurityToken _);
+
+#pragma warning disable 1998
+                // This check is required to ensure that the Web API only accepts tokens from tenants where it has been consented to and provisioned.
+                if (!claimsPrincipal.Claims.Any(x => x.Type == ClaimConstants.ScopeClaimType)
+                   && !claimsPrincipal.Claims.Any(y => y.Type == ClaimConstants.RolesClaimType))
+                {
+                    throw new UnauthorizedAccessException("Neither scope or roles claim was found in the bearer token.");
+                }
+#pragma warning restore 1998
 
                 // Set the ClaimsPrincipal on the current thread.
                 Thread.CurrentPrincipal = claimsPrincipal;
@@ -128,8 +141,8 @@ namespace TodoListService_ManualJwt
                 if (HttpContext.Current != null)
                     HttpContext.Current.User = claimsPrincipal;
 
-                // If the token is scoped, verify that required permission is set in the scope claim.
-                if (ClaimsPrincipal.Current.FindFirst(_scopeClaimType) != null && ClaimsPrincipal.Current.FindFirst(_scopeClaimType).Value != "user_impersonation")
+                // If the token is scoped, verify that required permission is set in the scope claim. This could be done later at the controller level as well
+                if (ClaimsPrincipal.Current.FindFirst(ClaimConstants.ScopeClaimType).Value != ClaimConstants.ScopeClaimValue)
                     return BuildResponseErrorMessage(HttpStatusCode.Forbidden);
 
                 return await base.SendAsync(request, cancellationToken);
