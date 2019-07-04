@@ -201,14 +201,14 @@ Function ConfigureApplications
    # Update config file for 'service'
    $configFile = $pwd.Path + "\..\TodoListService-ManualJwt\Web.Config"
    Write-Host "Updating the sample code ($configFile)"
-   ReplaceSetting -configFilePath $configFile -key "ida:Tenant" -newValue $tenantName
+   ReplaceSetting -configFilePath $configFile -key "ida:TenantId" -newValue $tenantId
    ReplaceSetting -configFilePath $configFile -key "ida:Audience" -newValue $serviceIdentifierUri
    ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue $serviceAadApplication.AppId
 
    # Update config file for 'client'
    $configFile = $pwd.Path + "\..\TodoListClient\App.Config"
    Write-Host "Updating the sample code ($configFile)"
-   ReplaceSetting -configFilePath $configFile -key "ida:TenantId" -newValue $tenantId
+   ReplaceSetting -configFilePath $configFile -key "ida:Tenant" -newValue $tenantName
    ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue $clientAadApplication.AppId
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListResourceId" -newValue $serviceIdentifierUri
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListBaseAddress" -newValue $serviceAadApplication.HomePage

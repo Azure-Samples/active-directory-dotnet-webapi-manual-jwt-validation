@@ -192,8 +192,8 @@ Open the solution in Visual Studio to configure the projects
 > Note: if you used the setup scripts, the changes below will have been applied for you
 
 1. Open the `TodoListService-ManualJwt\Web.Config` file
-1. Find the app key `ida:Tenant` and replace the existing value with your Azure AD tenant name.
-1. Find the app key `ida:Audience` and replace the existing value with the App ID URI noted earlier ('api://{clientId}).
+1. Find the app key `ida:TenantId` and replace the existing value with your Azure AD tenant ID.
+1. Find the app key `ida:Audience` and replace the existing value with the AppID URI of the service, like api://{clientId}, for example **api://821f07ea-31b2-4a15-a154-847edf508749**.
 1. Find the app key `ida:ClientId` and replace the existing value with the application ID (clientId) of the `TodoListService-ManualJwt` application copied from the Azure portal.
 
 #### Configure the client project
@@ -203,7 +203,7 @@ Open the solution in Visual Studio to configure the projects
 1. Open the `TodoListClient\App.Config` file
 1. Find the app key `ida:Tenant` and replace the existing value with your Azure AD tenant name.
 1. Find the app key `ida:ClientId` and replace the existing value with the application ID (clientId) of the `TodoListClient-ManualJwt` application copied from the Azure portal.
-1. Find the app key `todo:TodoListResourceId` and replace the existing value with the App ID URI noted earlier ('api://{clientId})
+1. Find the app key `todo:TodoListResourceId` and replace the existing value with the AppID URI of the service, like api://{clientId}, for example **api://821f07ea-31b2-4a15-a154-847edf508749**.
 1. Find the app key `todo:TodoListBaseAddress` and replace the existing value with the base address of the TodoListService-ManualJwt project (by default `https://localhost:44324`).
 
 ### Step 4:  Run the sample
