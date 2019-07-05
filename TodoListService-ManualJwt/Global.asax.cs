@@ -143,7 +143,8 @@ namespace TodoListService_ManualJwt
             try
             {
                 // Validate token.
-                var claimsPrincipal = _tokenValidator.ValidateToken(request.Headers.Authorization.Parameter, validationParameters, out SecurityToken _);
+                SecurityToken securityToken;
+                var claimsPrincipal = _tokenValidator.ValidateToken(request.Headers.Authorization.Parameter, validationParameters, out securityToken);
 
 #pragma warning disable 1998
                 // This check is required to ensure that the Web API only accepts tokens from tenants where it has been consented to and provisioned.
