@@ -35,5 +35,10 @@ namespace TodoListService_ManualJwt
         public const string PreferredUserName = "preferred_username";
         public const string TenantId = "http://schemas.microsoft.com/identity/claims/tenantid";
         public const string Tid = "tid";
+        public const string ScopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
+        public const string RolesClaimType = "roles";
+
+        public const string ScopeClaimValue = "user_impersonation";
+
     }
 }

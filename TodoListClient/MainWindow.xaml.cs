@@ -139,7 +139,7 @@ namespace TodoListClient
                 return;
             }
 
-            // Once the token has been returned by ADAL, add it to the http authorization header, before making the call to access the To Do list service.
+            // Once the token has been returned by MSAL, add it to the http authorization header, before making the call to access the To Do list service.
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
 
             // Call the To Do list service.
@@ -152,7 +152,10 @@ namespace TodoListClient
                 JavaScriptSerializer serializer = new JavaScriptSerializer();
                 List<TodoItem> toDoArray = serializer.Deserialize<List<TodoItem>>(s);
 
-                TodoList.ItemsSource = toDoArray.Select(t => new { t.Title });
+                Dispatcher.Invoke(() =>
+                {
+                    TodoList.ItemsSource = toDoArray.Select(t => new { t.Title });
+                });                
             }
             else
             {
@@ -198,7 +201,7 @@ namespace TodoListClient
             // There is no access token in the cache, so prompt the user to sign-in.
             catch (MsalUiRequiredException)
             {
-                MessageBox.Show("Please re-sign");
+                MessageBox.Show("Please re-signIn");
                 SignInButton.Content = signInString;
             }
             catch (MsalException ex)
@@ -269,7 +272,7 @@ namespace TodoListClient
             //
             try
             {
-                // Force a sign-in (PromptBehavior.Always), as the ADAL web browser might contain cookies for the current user, and using .Auto
+                // Force a sign-in (PromptBehavior.Always), as the MSAL web browser might contain cookies for the current user, and using .Auto
                 // would re-sign-in the same user
                 var result = await _app.AcquireTokenInteractive(scopes)
                     .WithAccount(accounts.FirstOrDefault())
@@ -303,6 +306,7 @@ namespace TodoListClient
                 }
 
                 UserName.Content = Properties.Resources.UserNotSignedIn;
+                //SignInButton.Content = signInString;
             }
         }
 

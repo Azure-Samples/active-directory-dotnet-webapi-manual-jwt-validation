@@ -49,8 +49,8 @@
       "SettingFile": "\\..\\TodoListService-ManualJwt\\Web.Config",
       "Mappings": [
         {
-          "key": "ida:Tenant",
-          "value": "$tenantName"
+          "key": "ida:TenantId",
+          "value": "$tenantId"
         },
         {
           "key": "ida:Audience",
