@@ -139,7 +139,7 @@ namespace TodoListClient
                 return;
             }
 
-            // Once the token has been returned by ADAL, add it to the http authorization header, before making the call to access the To Do list service.
+            // Once the token has been returned by MSAL, add it to the http authorization header, before making the call to access the To Do list service.
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
 
             // Call the To Do list service.
@@ -152,7 +152,10 @@ namespace TodoListClient
                 JavaScriptSerializer serializer = new JavaScriptSerializer();
                 List<TodoItem> toDoArray = serializer.Deserialize<List<TodoItem>>(s);
 
-                TodoList.ItemsSource = toDoArray.Select(t => new { t.Title });
+                Dispatcher.Invoke(() =>
+                {
+                    TodoList.ItemsSource = toDoArray.Select(t => new { t.Title });
+                });                
             }
             else
             {
