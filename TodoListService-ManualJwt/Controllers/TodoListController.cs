@@ -36,9 +36,7 @@ namespace TodoListService_ManualJwt.Controllers
 {
     public class TodoListController : ApiController
     {
-        //
         // To Do items list for all users.  Since the list is stored in memory, it will go away if the service is cycled.
-        //
         private static ConcurrentBag<TodoItem> todoBag = new ConcurrentBag<TodoItem>();
 
         // GET api/todolist
