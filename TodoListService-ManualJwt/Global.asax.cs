@@ -138,6 +138,8 @@ namespace TodoListService_ManualJwt
                 // Support Azure AD V1 and V2 endpoints.
                 ValidIssuers = validissuers,
                 IssuerSigningKeys = config.SigningKeys
+
+                // Please inspect TokenValidationParameters class for a lot more validation parameters. 
             };
 
             try

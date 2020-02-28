@@ -2,7 +2,9 @@
 param(
     [PSCredential] $Credential,
     [Parameter(Mandatory=$False, HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
-    [string] $tenantId
+    [string] $tenantId,
+    [Parameter(Mandatory=$False, HelpMessage='Azure environment to use while running the script (it defaults to AzureCloud)')]
+    [string] $azureEnvironmentName
 )
 
 <#
@@ -39,7 +41,7 @@ Function AddResourcePermission($requiredAccess, `
 }
 
 #
-# Exemple: GetRequiredPermissions "Microsoft Graph"  "Graph.Read|User.Read"
+# Example: GetRequiredPermissions "Microsoft Graph"  "Graph.Read|User.Read"
 # See also: http://stackoverflow.com/questions/42164581/how-to-configure-a-new-azure-ad-application-through-powershell
 Function GetRequiredPermissions([string] $applicationDisplayName, [string] $requiredDelegatedPermissions, [string]$requiredApplicationPermissions, $servicePrincipal)
 {
@@ -89,9 +91,47 @@ Function ReplaceSetting([string] $configFilePath, [string] $key, [string] $newVa
    $content.save($configFilePath)
 }
 
+<#.Description
+   This function creates a new Azure AD scope (OAuth2Permission) with default and provided values
+#>  
+Function CreateScope( [string] $value, [string] $userConsentDisplayName, [string] $userConsentDescription, [string] $adminConsentDisplayName, [string] $adminConsentDescription)
+{
+    $scope = New-Object Microsoft.Open.AzureAD.Model.OAuth2Permission
+    $scope.Id = New-Guid
+    $scope.Value = $value
+    $scope.UserConsentDisplayName = $userConsentDisplayName
+    $scope.UserConsentDescription = $userConsentDescription
+    $scope.AdminConsentDisplayName = $adminConsentDisplayName
+    $scope.AdminConsentDescription = $adminConsentDescription
+    $scope.IsEnabled = $true
+    $scope.Type = "User"
+    return $scope
+}
+
+<#.Description
+   This function creates a new Azure AD AppRole with default and provided values
+#>  
+Function CreateAppRole([string] $types, [string] $name, [string] $description)
+{
+    $appRole = New-Object Microsoft.Open.AzureAD.Model.AppRole
+    $appRole.AllowedMemberTypes = New-Object System.Collections.Generic.List[string]
+    $typesArr = $types.Split(',')
+    foreach($type in $typesArr)
+    {
+        $appRole.AllowedMemberTypes.Add($type);
+    }
+    $appRole.DisplayName = $name
+    $appRole.Id = New-Guid
+    $appRole.IsEnabled = $true
+    $appRole.Description = $description
+    $appRole.Value = $name;
+    return $appRole
+}
 
 Set-Content -Value "<html><body><table>" -Path createdApps.html
 Add-Content -Value "<thead><tr><th>Application</th><th>AppId</th><th>Url in the Azure portal</th></tr></thead><tbody>" -Path createdApps.html
+
+$ErrorActionPreference = "Stop"
 
 Function ConfigureApplications
 {
@@ -100,8 +140,12 @@ Function ConfigureApplications
    configuration files in the client and service project  of the visual studio solution (App.Config and Web.Config)
    so that they are consistent with the Applications parameters
 #> 
-
     $commonendpoint = "common"
+    
+    if (!$azureEnvironmentName)
+    {
+        $azureEnvironmentName = "AzureCloud"
+    }
 
     # $tenantId is the Active Directory Tenant. This is a GUID which represents the "Directory ID" of the AzureAD tenant
     # into which you want to create the apps. Look it up in the Azure portal in the "Properties" of the Azure AD.
@@ -110,17 +154,17 @@ Function ConfigureApplications
     # you'll need to sign-in with creds enabling your to create apps in the tenant)
     if (!$Credential -and $TenantId)
     {
-        $creds = Connect-AzureAD -TenantId $tenantId
+        $creds = Connect-AzureAD -TenantId $tenantId -AzureEnvironmentName $azureEnvironmentName
     }
     else
     {
         if (!$TenantId)
         {
-            $creds = Connect-AzureAD -Credential $Credential
+            $creds = Connect-AzureAD -Credential $Credential -AzureEnvironmentName $azureEnvironmentName
         }
         else
         {
-            $creds = Connect-AzureAD -TenantId $tenantId -Credential $Credential
+            $creds = Connect-AzureAD -TenantId $tenantId -Credential $Credential -AzureEnvironmentName $azureEnvironmentName
         }
     }
 
@@ -129,20 +173,24 @@ Function ConfigureApplications
         $tenantId = $creds.Tenant.Id
     }
 
+    
+
     $tenant = Get-AzureADTenantDetail
     $tenantName =  ($tenant.VerifiedDomains | Where { $_._Default -eq $True }).Name
 
-    # Get the user running the script
+    # Get the user running the script to add the user as the app owner
     $user = Get-AzureADUser -ObjectId $creds.Account.Id
 
    # Create the service AAD application
    Write-Host "Creating the AAD application (TodoListService-ManualJwt)"
+   # create the application 
    $serviceAadApplication = New-AzureADApplication -DisplayName "TodoListService-ManualJwt" `
                                                    -HomePage "https://localhost:44324" `
                                                    -PublicClient $False
    $serviceIdentifierUri = 'api://'+$serviceAadApplication.AppId
    Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -IdentifierUris $serviceIdentifierUri
 
+   # create the service principal of the newly created application 
    $currentAppId = $serviceAadApplication.AppId
    $serviceServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
 
@@ -154,6 +202,36 @@ Function ConfigureApplications
         Write-Host "'$($user.UserPrincipalName)' added as an application owner to app '$($serviceServicePrincipal.DisplayName)'"
    }
 
+    # rename the user_impersonation scope if it exists to match the readme steps or add a new scope
+    $scopes = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.OAuth2Permission]
+   
+    if ($scopes.Count -ge 0) 
+    {
+        # add all existing scopes first
+        $serviceAadApplication.Oauth2Permissions | foreach-object { $scopes.Add($_) }
+
+        $scope = $serviceAadApplication.Oauth2Permissions | Where-Object { $_.Value -eq "User_impersonation" }
+
+        if ($scope -ne $null) 
+        {
+            $scope.Value = "access_as_user"
+        }
+        else 
+        {
+            # Add scope
+            $scope = CreateScope -value "access_as_user"  `
+                -userConsentDisplayName "Access TodoListService-ManualJwt"  `
+                -userConsentDescription "Allow the application to access TodoListService-ManualJwt on your behalf."  `
+                -adminConsentDisplayName "Access TodoListService-ManualJwt"  `
+                -adminConsentDescription "Allows the app to have the same access to information in the directory on behalf of the signed-in user."
+            
+            $scopes.Add($scope)
+        }        
+    }
+     
+    # add/update scopes
+    Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -OAuth2Permission $scopes
+
    Write-Host "Done creating the service application (TodoListService-ManualJwt)"
 
    # URL of the AAD application in the Azure portal
@@ -161,12 +239,15 @@ Function ConfigureApplications
    $servicePortalUrl = "https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/CallAnAPI/appId/"+$serviceAadApplication.AppId+"/objectId/"+$serviceAadApplication.ObjectId+"/isMSAApp/"
    Add-Content -Value "<tr><td>service</td><td>$currentAppId</td><td><a href='$servicePortalUrl'>TodoListService-ManualJwt</a></td></tr>" -Path createdApps.html
 
+
    # Create the client AAD application
    Write-Host "Creating the AAD application (TodoListClient-ManualJwt)"
+   # create the application 
    $clientAadApplication = New-AzureADApplication -DisplayName "TodoListClient-ManualJwt" `
-                                                  -ReplyUrls "urn:ietf:wg:oauth:2.0:oob", "https://login.microsoftonline.com/common/oauth2/nativeclient" `
+                                                  -ReplyUrls "https://login.microsoftonline.com/common/oauth2/nativeclient" `
                                                   -PublicClient $True
 
+   # create the service principal of the newly created application 
    $currentAppId = $clientAadApplication.AppId
    $clientServicePrincipal = New-AzureADServicePrincipal -AppId $currentAppId -Tags {WindowsAzureActiveDirectoryIntegratedApp}
 
@@ -177,6 +258,7 @@ Function ConfigureApplications
         Add-AzureADApplicationOwner -ObjectId $clientAadApplication.ObjectId -RefObjectId $user.ObjectId
         Write-Host "'$($user.UserPrincipalName)' added as an application owner to app '$($clientServicePrincipal.DisplayName)'"
    }
+
 
    Write-Host "Done creating the client application (TodoListClient-ManualJwt)"
 
@@ -190,7 +272,7 @@ Function ConfigureApplications
    # Add Required Resources Access (from 'client' to 'service')
    Write-Host "Getting access from 'client' to 'service'"
    $requiredPermissions = GetRequiredPermissions -applicationDisplayName "TodoListService-ManualJwt" `
-                                                -requiredDelegatedPermissions "user_impersonation" `
+                                                -requiredDelegatedPermissions "access_as_user" `
 
    $requiredResourcesAccess.Add($requiredPermissions)
 
@@ -201,17 +283,17 @@ Function ConfigureApplications
    # Update config file for 'service'
    $configFile = $pwd.Path + "\..\TodoListService-ManualJwt\Web.Config"
    Write-Host "Updating the sample code ($configFile)"
-   ReplaceSetting -configFilePath $configFile -key "ida:TenantId" -newValue $tenantId
-   ReplaceSetting -configFilePath $configFile -key "ida:Audience" -newValue $serviceIdentifierUri
-   ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue $serviceAadApplication.AppId
+   ReplaceSetting -configFilePath $configFile -key "ida:TenantId" -newValue ($tenantId)
+   ReplaceSetting -configFilePath $configFile -key "ida:Audience" -newValue ($serviceIdentifierUri)
+   ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue ($serviceAadApplication.AppId)
 
    # Update config file for 'client'
    $configFile = $pwd.Path + "\..\TodoListClient\App.Config"
    Write-Host "Updating the sample code ($configFile)"
-   ReplaceSetting -configFilePath $configFile -key "ida:Tenant" -newValue $tenantName
-   ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue $clientAadApplication.AppId
-   ReplaceSetting -configFilePath $configFile -key "todo:TodoListResourceId" -newValue $serviceIdentifierUri
-   ReplaceSetting -configFilePath $configFile -key "todo:TodoListBaseAddress" -newValue $serviceAadApplication.HomePage
+   ReplaceSetting -configFilePath $configFile -key "ida:Tenant" -newValue ($tenantName)
+   ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue ($clientAadApplication.AppId)
+   ReplaceSetting -configFilePath $configFile -key "todo:TodoListResourceId" -newValue ($serviceIdentifierUri)
+   ReplaceSetting -configFilePath $configFile -key "todo:TodoListBaseAddress" -newValue ($serviceAadApplication.HomePage)
   
    Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html  
 }
@@ -219,7 +301,8 @@ Function ConfigureApplications
 # Pre-requisites
 if ((Get-Module -ListAvailable -Name "AzureAD") -eq $null) { 
     Install-Module "AzureAD" -Scope CurrentUser 
-} 
+}
+
 Import-Module AzureAD
 
 # Run interactively (will ask you for the tenant ID)

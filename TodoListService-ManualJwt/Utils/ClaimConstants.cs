@@ -38,7 +38,7 @@ namespace TodoListService_ManualJwt
         public const string ScopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
         public const string RolesClaimType = "roles";
 
-        public const string ScopeClaimValue = "user_impersonation";
+        public const string ScopeClaimValue = "access_as_user";
 
     }
 }

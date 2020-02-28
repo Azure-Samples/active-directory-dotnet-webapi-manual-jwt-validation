@@ -25,12 +25,12 @@
       "Name": "TodoListClient-ManualJwt",
       "Kind": "Desktop",
       "Audience": "AzureADMyOrg",
-      "ReplyUrls": "urn:ietf:wg:oauth:2.0:oob,https://login.microsoftonline.com/common/oauth2/nativeclient",
+      "ReplyUrls": "https://login.microsoftonline.com/common/oauth2/nativeclient",
       "IsPublicClient": true,
       "RequiredResourcesAccess": [
         {
           "Resource": "service",
-          "DelegatedPermissions": [ "user_impersonation" ]
+          "DelegatedPermissions": [ "access_as_user" ]
         }
       ]
     }

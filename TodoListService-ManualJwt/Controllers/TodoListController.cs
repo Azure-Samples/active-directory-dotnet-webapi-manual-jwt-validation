@@ -68,7 +68,7 @@ namespace TodoListService_ManualJwt.Controllers
         {
             //
             // The Scope claim tells you what permissions the client application has in the service.
-            // In this case we look for a scope value of user_impersonation, or full access to the service as the user.
+            // In this case we look for a scope value of access_as_user, or full access to the service as the user.
 
             if (!ClaimsPrincipal.Current.HasClaim(ClaimConstants.ScopeClaimType, ClaimConstants.ScopeClaimValue))
             {
