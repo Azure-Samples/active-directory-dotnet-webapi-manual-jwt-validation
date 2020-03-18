@@ -78,6 +78,7 @@ namespace TodoListClient
             InitializeComponent();
             _app = PublicClientApplicationBuilder.Create(clientId)
                 .WithAuthority(authority)
+                .WithDefaultRedirectUri()
                 .Build();
 
             TokenCacheHelper.EnableSerialization(_app.UserTokenCache);
