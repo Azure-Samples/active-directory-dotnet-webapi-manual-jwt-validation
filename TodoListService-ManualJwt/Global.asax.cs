@@ -139,7 +139,7 @@ namespace TodoListService_ManualJwt
                 ValidIssuers = validissuers,
                 IssuerSigningKeys = config.SigningKeys
 
-                // Please inspect TokenValidationParameters class for a lot more validation parameters. 
+                // Please inspect TokenValidationParameters class for a lot more validation parameters.
             };
 
             try
@@ -151,7 +151,8 @@ namespace TodoListService_ManualJwt
 #pragma warning disable 1998
                 // This check is required to ensure that the Web API only accepts tokens from tenants where it has been consented to and provisioned.
                 if (!claimsPrincipal.Claims.Any(x => x.Type == ClaimConstants.ScopeClaimType)
-                   && !claimsPrincipal.Claims.Any(y => y.Type == ClaimConstants.RolesClaimType))
+                    && !claimsPrincipal.Claims.Any(y => y.Type == ClaimConstants.ScpClaimType)
+                    && !claimsPrincipal.Claims.Any(y => y.Type == ClaimConstants.RolesClaimType))
                 {
 #if DEBUG
                     return BuildResponseErrorMessage(HttpStatusCode.Forbidden, "Neither 'scope' or 'roles' claim was found in the bearer token.");
