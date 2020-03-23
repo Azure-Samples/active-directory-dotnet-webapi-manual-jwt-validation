@@ -153,14 +153,14 @@ The first thing that we need to do is to declare the unique [resource](https://d
    - For this sample, accept the proposed Application ID URI (api://{clientId}) by selecting **Save**.
 1. All Apis have to publish a minimum of one [scope](https://docs.microsoft.com/azure/active-directory/develop/v2-oauth2-auth-code-flow#request-an-authorization-code) for the client's to obtain an access token successfully. To publish a scope, follow the following steps:
    - Select **Add a scope** button open the **Add a scope** screen and Enter the values as indicated below:
-          - For **Scope name**, use `access_as_user`.
-          - Select **Admins and users** options for **Who can consent?**
-          - For **Admin consent display name** type `Access TodoListService-ManualJwt`
-          - For **Admin consent description** type `Allows the app to access TodoListService-ManualJwt as the signed-in user.`
-          - For **User consent display name** type `Access TodoListService-ManualJwt`
-          - For **User consent description** type `Allow the application to access TodoListService-ManualJwt on your behalf.`
-          - Keep **State** as **Enabled**
-          - Click on the **Add scope** button on the bottom to save this scope.
+        - For **Scope name**, use `access_as_user`.
+        - Select **Admins and users** options for **Who can consent?**
+        - For **Admin consent display name** type `Access TodoListService-ManualJwt`
+        - For **Admin consent description** type `Allows the app to access TodoListService-ManualJwt as the signed-in user.`
+        - For **User consent display name** type `Access TodoListService-ManualJwt`
+        - For **User consent description** type `Allow the application to access TodoListService-ManualJwt on your behalf.`
+        - Keep **State** as **Enabled**
+        - Click on the **Add scope** button on the bottom to save this scope.
 
 #### Register the client app (TodoListClient-ManualJwt)
 
