@@ -82,6 +82,7 @@ namespace TodoListService_ManualJwt
             var aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
             _tenant = ConfigurationManager.AppSettings["ida:TenantId"];
             _authority = string.Format(CultureInfo.InvariantCulture, aadInstance, _tenant);
+            // The ConfigurationManager class holds properties to control the metadata refresh interval. For more details, https://docs.microsoft.com/en-us/dotnet/api/microsoft.identitymodel.protocols.configurationmanager-1?view=azure-dotnet
             _configManager = new ConfigurationManager<OpenIdConnectConfiguration>($"{_authority}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever());
             _tokenValidator = new JwtSecurityTokenHandler();
         }
