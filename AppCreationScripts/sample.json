@@ -1,6 +1,6 @@
 {
   "Sample": {
-    "Title": "How to manually validate a JWT access token using Microsoft identity platform (formerly Azure Active Directory for developers)",
+    "Title": "How to manually validate a JWT access token using the Microsoft identity platform ",
     "Level": 300,
     "Client": ".NET Desktop App (WPF)",
     "Service": "ASP.NET Web API",

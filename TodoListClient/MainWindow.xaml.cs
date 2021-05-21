@@ -81,7 +81,7 @@ namespace TodoListClient
                 .WithDefaultRedirectUri()
                 .Build();
 
-            TokenCacheHelper.EnableSerialization(_app.UserTokenCache);
+            FileCache.EnableSerialization(_app.UserTokenCache);
             GetTodoList();
         }
 
