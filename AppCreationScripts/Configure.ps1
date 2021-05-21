@@ -7,6 +7,8 @@ param(
     [string] $azureEnvironmentName
 )
 
+#Requires -Modules AzureAD -RunAsAdministrator
+
 <#
  This script creates the Azure AD applications needed for this sample and updates the configuration files
  for the visual Studio projects from the data in the Azure AD applications.
@@ -187,6 +189,7 @@ Function ConfigureApplications
    $serviceAadApplication = New-AzureADApplication -DisplayName "TodoListService-ManualJwt" `
                                                    -HomePage "https://localhost:44324" `
                                                    -PublicClient $False
+
    $serviceIdentifierUri = 'api://'+$serviceAadApplication.AppId
    Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -IdentifierUris $serviceIdentifierUri
 
@@ -205,28 +208,30 @@ Function ConfigureApplications
     # rename the user_impersonation scope if it exists to match the readme steps or add a new scope
     $scopes = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.OAuth2Permission]
    
+    # delete default scope i.e. User_impersonation
+    $scope = $serviceAadApplication.Oauth2Permissions | Where-Object { $_.Value -eq "User_impersonation" }
+    if($scope -ne $null)
+    {
+       # disable the scope
+       $scope.IsEnabled = $false
+       $scopes.Add($scope)
+       Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -Oauth2Permissions $scopes
+
+       # clear the scope
+       $scopes.Clear()
+       Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -Oauth2Permissions $scopes
+    }
+
     if ($scopes.Count -ge 0) 
     {
-        # add all existing scopes first
-        $serviceAadApplication.Oauth2Permissions | foreach-object { $scopes.Add($_) }
-
-        $scope = $serviceAadApplication.Oauth2Permissions | Where-Object { $_.Value -eq "User_impersonation" }
-
-        if ($scope -ne $null) 
-        {
-            $scope.Value = "access_as_user"
-        }
-        else 
-        {
-            # Add scope
-            $scope = CreateScope -value "access_as_user"  `
+             $scope = CreateScope -value access_as_user  `
                 -userConsentDisplayName "Access TodoListService-ManualJwt"  `
                 -userConsentDescription "Allow the application to access TodoListService-ManualJwt on your behalf."  `
                 -adminConsentDisplayName "Access TodoListService-ManualJwt"  `
                 -adminConsentDescription "Allows the app to have the same access to information in the directory on behalf of the signed-in user."
             
-            $scopes.Add($scope)
-        }        
+                $scopes.Add($scope)
+    
     }
      
     # add/update scopes
@@ -294,7 +299,13 @@ Function ConfigureApplications
    ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue ($clientAadApplication.AppId)
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListResourceId" -newValue ($serviceIdentifierUri)
    ReplaceSetting -configFilePath $configFile -key "todo:TodoListBaseAddress" -newValue ($serviceAadApplication.HomePage)
-  
+   if($isOpenSSL -eq 'Y')
+   {
+        Write-Host -ForegroundColor Green "------------------------------------------------------------------------------------------------" 
+        Write-Host "You have generated certificate using OpenSSL so follow below steps: "
+        Write-Host "Install the certificate on your system from current folder."
+        Write-Host -ForegroundColor Green "------------------------------------------------------------------------------------------------" 
+   }
    Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html  
 }
 
