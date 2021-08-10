@@ -68,22 +68,15 @@ namespace TodoListService_ManualJwt
         // The Authority is the sign-in URL of the tenant.
         // The Audience is the value of one of the 'aud' claims the service expects to find in token to assure the token is addressed to it.
 
-        private string _audience;
-        private string _authority;
-        private string _clientId;
-        private ConfigurationManager<OpenIdConnectConfiguration> _configManager;
-        private string _tenant;
+        private string _audience = ConfigurationManager.AppSettings["ida:Audience"];        
+        private string _clientId = ConfigurationManager.AppSettings["ida:ClientId"];
+        private string _tenant = ConfigurationManager.AppSettings["ida:TenantId"];
         private ISecurityTokenValidator _tokenValidator;
+        private string _authority;
 
         public TokenValidationHandler()
         {
-            _audience = ConfigurationManager.AppSettings["ida:Audience"];
-            _clientId = ConfigurationManager.AppSettings["ida:ClientId"];
-            var aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
-            _tenant = ConfigurationManager.AppSettings["ida:TenantId"];
-            _authority = string.Format(CultureInfo.InvariantCulture, aadInstance, _tenant);
-            // The ConfigurationManager class holds properties to control the metadata refresh interval. For more details, https://docs.microsoft.com/en-us/dotnet/api/microsoft.identitymodel.protocols.configurationmanager-1?view=azure-dotnet
-            _configManager = new ConfigurationManager<OpenIdConnectConfiguration>($"{_authority}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever());
+            _authority = string.Format(CultureInfo.InvariantCulture, ConfigurationManager.AppSettings["ida:AADInstance"], _tenant);
             _tokenValidator = new JwtSecurityTokenHandler();
         }
 
@@ -107,7 +100,7 @@ namespace TodoListService_ManualJwt
             OpenIdConnectConfiguration config = null;
             try
             {
-                config = await _configManager.GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
+                config = await GetConfigurationManager().GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -170,11 +163,11 @@ namespace TodoListService_ManualJwt
                 if (HttpContext.Current != null)
                     HttpContext.Current.User = claimsPrincipal;
 
-                // If the token is scoped, verify that required permission is set in the scope claim. This could be done later at the controller level as well
-                if (ClaimsPrincipal.Current.FindFirst(ClaimConstants.ScopeClaimType).Value != ClaimConstants.ScopeClaimValue)
-                    return BuildResponseErrorMessage(HttpStatusCode.Forbidden);
-
-                return await base.SendAsync(request, cancellationToken);
+                // If the token is scoped, verify that required permission is set in the scope claim.
+                // This could be done later at the controller level as well
+                return ClaimsPrincipal.Current.FindFirst(ClaimConstants.ScopeClaimType).Value != ClaimConstants.ScopeClaimValue
+                    ? BuildResponseErrorMessage(HttpStatusCode.Forbidden)
+                    : await base.SendAsync(request, cancellationToken);
             }
             catch (SecurityTokenValidationException stex)
             {
@@ -199,9 +192,17 @@ namespace TodoListService_ManualJwt
             var response = new HttpResponseMessage(statusCode);
 
             // The Scheme should be "Bearer", authorization_uri should point to the tenant url and resource_id should point to the audience.
-            var authenticateHeader = new AuthenticationHeaderValue("Bearer", "authorization_uri=\"" + _authority + "\"" + "," + "resource_id=" + _audience + $",error_description={error_description}");
-            response.Headers.WwwAuthenticate.Add(authenticateHeader);
+            response.Headers.WwwAuthenticate.Add(
+                new AuthenticationHeaderValue("Bearer", "authorization_uri=\"" + _authority + "\"" + "," + "resource_id=" + _audience + $",error_description={error_description}"));
             return response;
         }
+
+        /// <summary>
+        /// The ConfigurationManager class holds properties to control the metadata refresh interval. 
+        /// For more details, https://docs.microsoft.com/en-us/dotnet/api/microsoft.identitymodel.protocols.configurationmanager-1?view=azure-dotnet
+        /// </summary>
+        /// <returns></returns>
+        private ConfigurationManager<OpenIdConnectConfiguration> GetConfigurationManager() =>
+            new ConfigurationManager<OpenIdConnectConfiguration>($"{_authority}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever());
     }
 }
