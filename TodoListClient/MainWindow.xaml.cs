@@ -59,7 +59,9 @@ namespace TodoListClient
         // To contact the To Do list service we need it's URL as well.
         //
         private static string todoListBaseAddress = ConfigurationManager.AppSettings["todo:TodoListBaseAddress"];
-        public static string[] scopes = { $"{ConfigurationManager.AppSettings["todo:TodoListScope"]}" };
+        private static string todoListResourceId = ConfigurationManager.AppSettings["todo:TodoListResourceId"];
+
+        public static string[] scopes = { $"{todoListResourceId}/{ConfigurationManager.AppSettings["todo:TodoListScope"]}" };
 
         private HttpClient httpClient = new HttpClient();
         private readonly IPublicClientApplication _app;
