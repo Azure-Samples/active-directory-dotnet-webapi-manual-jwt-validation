@@ -1,6 +1,15 @@
 ---
+page_type: sample
+languages:
+  - csharp
+products:
+  - aspnet-core
+  - microsoft-identity-web
+  - azure-active-directory  
+name: How to manually validate a JWT access token using the Microsoft identity platform 
+urlFragment: active-directory-dotnet-webapi-manual-jwt-validation
 services: active-directory
-platforms: dotnet
+platforms: dotnetcore
 author: kalyankrishna1
 level: 300
 client: .NET Desktop App (WPF)
@@ -8,9 +17,33 @@ service: ASP.NET Web API
 endpoint: AAD v2.0
 ---
 
-# How to manually validate a JWT access token using the Microsoft identity platform (formerly Azure Active Directory for developers)
+# How to manually validate a JWT access token using the Microsoft identity platform
+
+- [Overview](#overview)
+- [About this sample](#about-this-sample)
+- [Scenario: protecting a Web API - acquiring a token for the protected Web API](#scenario-protecting-a-web-api---acquiring-a-token-for-the-protected-web-api)
+  - [Token Validation](#token-validation)
+  - [What to validate?](#what-to-validate)
+  - [Validating the claims](#validating-the-claims)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Explore the sample](#explore-the-sample)
+- [About The Code](#about-the-code)
+- [How To Recreate This Sample](#how-to-recreate-this-sample)
+  - [Creating the TodoListService-ManualJwt Project](#creating-the-todolistservice-manualjwt-project)
+  - [Creating the TodoListClient Project](#creating-the-todolistclient-project)
+- [How to deploy this sample to Azure](#how-to-deploy-this-sample-to-azure)
+- [Azure Government Deviations](#azure-government-deviations)
+- [Troubleshooting](#troubleshooting)
+- [Community Help and Support](#community-help-and-support)
+- [Contributing](#contributing)
+- [More information](#more-information)
 
 ![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/18/badge)
+
+## Overview
+
+This sample demonstrates how to manually validate an access token issued to a web API protected by the Microsoft Identity Platform. Here a .NET Desktop App (WPF) calls a protected ASP.NET Web API that is secured using Azure AD.
 
 ## About this sample
 
@@ -205,7 +238,7 @@ Open the project in your IDE (like Visual Studio or Visual Studio Code) to confi
 1. Open the `TodoListClient\App.Config` file.
 1. Find the key `ida:Tenant` and replace the existing value with your Azure AD tenant name.
 1. Find the key `ida:ClientId` and replace the existing value with the application ID (clientId) of `TodoListClient-ManualJwt` app copied from the Azure portal.
-1. Find the key `todo:TodoListResourceId` and replace the value with the App ID URI you registered earlier, when exposing an API. For instance use `api://<application_id>`.
+1. Find the key `todo:TodoListResourceId` and replace the existing value with the App ID URI you registered earlier, when exposing an API. For instance use `api://<application_id>`.
 1. Find the key `todo:TodoListBaseAddress` and replace the existing value with the base address of `TodoListService-ManualJwt` (by default `https://localhost:44324`).
 
 ## Running the sample
@@ -214,9 +247,11 @@ Open the project in your IDE (like Visual Studio or Visual Studio Code) to confi
 >
 > Clean the solution, rebuild the solution, and run it.  You might want to go into the solution properties and set both projects as startup projects, with the service project starting first.
 
+## Explore the sample
+
 Explore the sample by signing in, adding items to the To Do list, removing the user account, and starting again.  Notice that if you stop the application without removing the user account, the next time you run the application you won't be prompted to sign in again - that is the sample implements a [persistent cache for MSAL](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/wiki/token-cache-serialization), and remembers the tokens from the previous run.
 
-> Did the sample not work for you as expected? Did you encounter issues trying this sample? Then please reach out to us using the [GitHub Issues](../../issues) page.
+> :information_source:  Did the sample not work for you as expected? Did you encounter issues trying this sample? Then please reach out to us using the [GitHub Issues](../../issues) page.
 
 > [Consider taking a moment to share your experience with us.](https://forms.office.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR73pcsbpbxNJuZCMKN0lURpUMjFRQjA0RElFUFNPV0dCUVBGQzk0QkhKTiQlQCN0PWcu)
 
