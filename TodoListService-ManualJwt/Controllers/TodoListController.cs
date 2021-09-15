@@ -23,6 +23,7 @@ SOFTWARE.
  */
 
 // The following using statements were added for this sample.
+using Shared.Models;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,6 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Web.Http;
-using TodoListService_ManualJwt.Models;
 
 namespace TodoListService_ManualJwt.Controllers
 {
@@ -42,7 +42,7 @@ namespace TodoListService_ManualJwt.Controllers
         // GET api/todolist
         public IEnumerable<TodoItem> Get()
         {
-            this.CheckExpectedClaim();
+            CheckExpectedClaim();
 
             // A user's To Do list is keyed off of the NameIdentifier claim, which contains an immutable, unique identifier for the user.
             Claim subject = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier);
@@ -55,7 +55,7 @@ namespace TodoListService_ManualJwt.Controllers
         // POST api/todolist
         public void Post(TodoItem todo)
         {
-            this.CheckExpectedClaim();
+            CheckExpectedClaim();
 
             if (null != todo && !string.IsNullOrWhiteSpace(todo.Title))
             {
@@ -63,7 +63,11 @@ namespace TodoListService_ManualJwt.Controllers
             }
         }
 
-        /// <summary>Checks that the expected claim that proves that the Api was provisioned in a target tenant and consented by an admin/user.</summary>
+        /// <summary>
+        /// Checks that the expected claim that proves that the Api was provisioned in a target tenant and consented by an admin/user.
+        /// </summary>
+        /// 
+        // Although we've already checked for the scope in Global.asax.cs, usually you may check the scope in the controller as explained below.
         private void CheckExpectedClaim()
         {
             //
@@ -72,7 +76,9 @@ namespace TodoListService_ManualJwt.Controllers
 
             if (!ClaimsPrincipal.Current.HasClaim(ClaimConstants.ScopeClaimType, ClaimConstants.ScopeClaimValue))
             {
-                throw new HttpResponseException(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized, ReasonPhrase = $"The Scope claim does not contain '{ClaimConstants.ScopeClaimValue}' or scope claim not found" });
+                throw new HttpResponseException(
+                    new HttpResponseMessage { 
+                        StatusCode = HttpStatusCode.Unauthorized, ReasonPhrase = $"The Scope claim does not contain '{ClaimConstants.ScopeClaimValue}' or scope claim not found" });
             }
         }
     }

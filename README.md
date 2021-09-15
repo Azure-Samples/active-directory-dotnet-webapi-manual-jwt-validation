@@ -205,7 +205,7 @@ Open the project in your IDE (like Visual Studio or Visual Studio Code) to confi
 1. Open the `TodoListClient\App.Config` file.
 1. Find the key `ida:Tenant` and replace the existing value with your Azure AD tenant name.
 1. Find the key `ida:ClientId` and replace the existing value with the application ID (clientId) of `TodoListClient-ManualJwt` app copied from the Azure portal.
-1. Find the key `todo:TodoListResourceId` and replace the existing value with the App ID URI you registered earlier, when exposing an API. For instance use `api://<application_id>`.
+1. Find the key `todo:TodoListResourceId` and replace the value with the App ID URI you registered earlier, when exposing an API. For instance use `api://<application_id>`.
 1. Find the key `todo:TodoListBaseAddress` and replace the existing value with the base address of `TodoListService-ManualJwt` (by default `https://localhost:44324`).
 
 ## Running the sample

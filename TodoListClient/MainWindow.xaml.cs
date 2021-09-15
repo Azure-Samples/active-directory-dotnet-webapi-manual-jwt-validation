@@ -23,6 +23,7 @@ SOFTWARE.
  */
 
 using Microsoft.Identity.Client;
+using Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -49,20 +50,17 @@ namespace TodoListClient
         // The Redirect URI is the URI where Azure AD will return OAuth responses.
         // The Authority is the sign-in URL of the tenant.
         //
-        private static string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
-
-        private static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
-        private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
-
-        private static string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+        private static string authority =
+            String.Format(
+                CultureInfo.InvariantCulture, ConfigurationManager.AppSettings["ida:AADInstance"], ConfigurationManager.AppSettings["ida:Tenant"]);
 
         //
         // To authenticate to the To Do list service, the client needs to know the service's App ID URI.
         // To contact the To Do list service we need it's URL as well.
         //
+        private static string todoListBaseAddress = ConfigurationManager.AppSettings["todo:TodoListBaseAddress"];
         private static string todoListResourceId = ConfigurationManager.AppSettings["todo:TodoListResourceId"];
 
-        private static string todoListBaseAddress = ConfigurationManager.AppSettings["todo:TodoListBaseAddress"];
         public static string[] scopes = { $"{todoListResourceId}/{ConfigurationManager.AppSettings["todo:TodoListScope"]}" };
 
         private HttpClient httpClient = new HttpClient();
@@ -76,7 +74,7 @@ namespace TodoListClient
         public MainWindow()
         {
             InitializeComponent();
-            _app = PublicClientApplicationBuilder.Create(clientId)
+            _app = PublicClientApplicationBuilder.Create(ConfigurationManager.AppSettings["ida:ClientId"])
                 .WithAuthority(authority)
                 .WithDefaultRedirectUri()
                 .Build();
@@ -85,10 +83,7 @@ namespace TodoListClient
             GetTodoList();
         }
 
-        private void GetTodoList()
-        {
-            GetTodoList(SignInButton.Content.ToString() != clearCacheString);
-        }
+        private void GetTodoList() => GetTodoList(SignInButton.Content.ToString() != clearCacheString);
 
         private async void GetTodoList(bool isAppStarting)
         {
@@ -156,14 +151,12 @@ namespace TodoListClient
                 Dispatcher.Invoke(() =>
                 {
                     TodoList.ItemsSource = toDoArray.Select(t => new { t.Title });
-                });                
+                });
             }
             else
             {
                 MessageBox.Show("An error occurred : " + response.ReasonPhrase);
             }
-
-            return;
         }
 
         private async void AddTodoItem(object sender, RoutedEventArgs e)
@@ -305,9 +298,6 @@ namespace TodoListClient
 
                     MessageBox.Show(message);
                 }
-
-                UserName.Content = Properties.Resources.UserNotSignedIn;
-                //SignInButton.Content = signInString;
             }
         }
 
@@ -322,7 +312,9 @@ namespace TodoListClient
             }
 
             if (userName == null)
+            {
                 userName = Properties.Resources.UserNotIdentified;
+            }
 
             UserName.Content = userName;
         }
