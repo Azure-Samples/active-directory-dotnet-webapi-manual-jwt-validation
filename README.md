@@ -27,12 +27,22 @@ endpoint: AAD v2.0
   - [Validating the claims](#validating-the-claims)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
+  - [Step 1:  Clone or download this repository](#step-1--clone-or-download-this-repository)
+  - [Register the sample application(s) with your Azure Active Directory tenant](#register-the-sample-applications-with-your-azure-active-directory-tenant)
+  - [Choose the Azure AD tenant where you want to create your applications](#choose-the-azure-ad-tenant-where-you-want-to-create-your-applications)
+  - [Register the service app (TodoListService-ManualJwt)](#register-the-service-app-todolistservice-manualjwt)
+  - [Register the client app (TodoListClient-ManualJwt)](#register-the-client-app-todolistclient-manualjwt)
+- [Running the sample](#running-the-sample)
 - [Explore the sample](#explore-the-sample)
 - [About The Code](#about-the-code)
+  - [Providing your own Custom token validation handler](#providing-your-own-custom-token-validation-handler)
 - [How To Recreate This Sample](#how-to-recreate-this-sample)
   - [Creating the TodoListService-ManualJwt Project](#creating-the-todolistservice-manualjwt-project)
   - [Creating the TodoListClient Project](#creating-the-todolistclient-project)
 - [How to deploy this sample to Azure](#how-to-deploy-this-sample-to-azure)
+  - [Create and publish the `TodoListService-ManualJwt` to an Azure Web Site](#create-and-publish-the-todolistservice-manualjwt-to-an-azure-web-site)
+  - [Update the Active Directory tenant application registration for `TodoListService-ManualJwt`](#update-the-active-directory-tenant-application-registration-for-todolistservice-manualjwt)
+  - [Update the `TodoListClient-ManualJwt` to call the `TodoListService-ManualJwt` Running in Azure Web Sites](#update-the-todolistclient-manualjwt-to-call-the-todolistservice-manualjwt-running-in-azure-web-sites)
 - [Azure Government Deviations](#azure-government-deviations)
 - [Troubleshooting](#troubleshooting)
 - [Community Help and Support](#community-help-and-support)
@@ -257,23 +267,78 @@ Explore the sample by signing in, adding items to the To Do list, removing the u
 
 ## About The Code
 
-The manual JWT validation occurs in the [TokenValidationHandler](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/master/TodoListService-ManualJwt/Global.asax.cs#L58) implementation in the `Global.aspx.cs` file in the TodoListService-ManualJwt project. Each time a call is made to the web API, the [TokenValidationHandler.SendAsync()](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/4b80657c5506c8cb30af67b9f61bb6aa68dfca58/TodoListService-ManualJwt/Global.asax.cs#L80) handler is executed:
+The manual JWT validation occurs in the [TokenValidationHandler](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/master/TodoListService-ManualJwt/Global.asax.cs#L58) implementation in the `Global.aspx.cs` file in the TodoListService-ManualJwt project. 
+Each time a call is made to the web API, the [TokenValidationHandler.SendAsync()](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/4b80657c5506c8cb30af67b9f61bb6aa68dfca58/TodoListService-ManualJwt/Global.asax.cs#L80) handler is executed:
 
 This method:
 
-1. gets the token from the Authorization headers
-1. gets the open ID configuration from the Azure AD discovery endpoint
-1. ensures that the web API is consented to and provisioned in the Azure AD tenant from where the access token originated
-1. verifies that the token has not expired
-1. sets the parameters to validate:
+1. Gets the token from the Authorization headers
+1. Gets the open ID configuration, including keys from the Azure AD discovery endpoint
+1. Sets the parameters to validate in `GetTokenValidationParameters()`
     - the audience - the application accepts both its App ID URI and its AppID/clientID
     - the valid issuers - the application accepts both Azure AD V1 and Azure AD V2
-
-1. then it delegates to the `JwtSecurityTokenHandler` class (provided by the `Microsoft.IdentityModel.Tokens` library)
+1. Then the token is validated
+1. An asp.net claims principal is created after a successful validation
+1. ensures that the web API is consented to and provisioned in the Azure AD tenant from where the access token originated
+1. Finally, a check for scopes that the web API expects from the caller is carried out
 
 The `TokenValidationHandler` class is registered with ASP.NET in the `TodoListService-ManualJwt/Global.asx.cs` file, in the [Application_Start()](https://github.com/Azure-Samples/active-directory-dotnet-webapi-manual-jwt-validation/blob/4b80657c5506c8cb30af67b9f61bb6aa68dfca58/TodoListService-ManualJwt/Global.asax.cs#L54) method.
 
 For more validation options, please refer to [TokenValidationParameters.cs](https://docs.microsoft.com/dotnet/api/microsoft.identitymodel.tokens.tokenvalidationparameters?view=azure-dotnet)
+
+### Providing your own Custom token validation handler
+
+If you do not wish to control the token validation from its very beginning to the end as laid out in the `Global.asax.cs`, but only limit yourself to validate business logic based on claims in the presented token, you can craft a Custom token handler as provided in the example below.  
+The provided example, validates to allow callers from a list of whitelisted tenants only.
+
+1. Create a custom handler implementation
+
+```CSharp
+
+public class CustomTokenHandler : JwtSecurityTokenHandler
+{
+   public override ClaimsPrincipal ValidateToken(
+      string token, TokenValidationParameters validationParameters,
+      out SecurityToken validatedToken)
+   {
+      try
+      {
+            var claimsPrincipal = base.ValidateToken(token, validationParameters, out validatedToken);
+
+            string[] allowedTenants = { "14c2f153-90a7-4689-9db7-9543bf084dad", "af8cc1a0-d2aa-4ca7-b829-00d361edb652", "979f4440-75dc-4664-b2e1-2cafa0ac67d1" };
+            string tenantId = claimsPrincipal.Claims.FirstOrDefault(x => x.Type == "tid" || x.Type == "http://schemas.microsoft.com/identity/claims/tenantid")?.Value;
+
+            if (!allowedTenants.Contains(tenantId))
+            {
+               throw new Exception("This tenant is not authorized");
+            }
+
+            return claimsPrincipal;
+      }
+      catch (Exception e)
+      {            
+            throw;
+      }
+   }
+}
+
+   ```
+
+1. Assign the custom handler in `Startup.Auth.cs`
+
+  ```CSharp
+
+app.UseWindowsAzureActiveDirectoryBearerAuthentication(
+               new WindowsAzureActiveDirectoryBearerAuthenticationOptions
+               {
+                  Tenant = ConfigurationManager.AppSettings["ida:Tenant"],
+                  TokenValidationParameters = new TokenValidationParameters
+                  {
+                     ValidAudience = ConfigurationManager.AppSettings["ida:Audience"]
+                  },
+                  TokenHandler = new CustomTokenHandler()
+               });
+   ```
 
 ## How To Recreate This Sample
 
@@ -386,7 +451,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 ## More information
 
-- [Microsoft identity platform (Azure Active Directory for developers)](https://docs.microsoft.com/en-us/azure/active-directory/develop/)
+- [Microsoft identity platform (Azure Active Directory for developers)](https://docs.microsoft.com/azure/active-directory/develop/)
 - [MSAL.NET's conceptual documentation](https://aka.ms/msal-net)
 - [Quickstart: Register an application with the Microsoft identity platform](https://docs.microsoft.com/azure/active-directory/develop/quickstart-register-app)
 - [Quickstart: Configure a client application to access web APIs](https://docs.microsoft.com/azure/active-directory/develop/quickstart-configure-app-access-web-apis)
