@@ -45,7 +45,7 @@ namespace TodoListService_ManualJwt.Controllers
             CheckExpectedClaim();
 
             // A user's To Do list is keyed off of the NameIdentifier claim, which contains an immutable, unique identifier for the user.
-            Claim subject = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier);
+            Claim subject = ClaimsPrincipal.Current.FindFirst(ClaimConstants.Name);
 
             return from todo in todoBag
                    where todo.Owner == subject.Value
@@ -59,7 +59,7 @@ namespace TodoListService_ManualJwt.Controllers
 
             if (null != todo && !string.IsNullOrWhiteSpace(todo.Title))
             {
-                todoBag.Add(new TodoItem { Title = todo.Title, Owner = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value });
+                todoBag.Add(new TodoItem { Title = todo.Title, Owner = ClaimsPrincipal.Current.FindFirst(ClaimConstants.Name).Value });
             }
         }
 
@@ -74,7 +74,7 @@ namespace TodoListService_ManualJwt.Controllers
             // The Scope claim tells you what permissions the client application has in the service.
             // In this case we look for a scope value of access_as_user, or full access to the service as the user.
 
-            if (!ClaimsPrincipal.Current.HasClaim(ClaimConstants.ScopeClaimType, ClaimConstants.ScopeClaimValue))
+            if (!ClaimsPrincipal.Current.HasClaim(ClaimConstants.ScpClaimType, ClaimConstants.ScopeClaimValue))
             {
                 throw new HttpResponseException(
                     new HttpResponseMessage { 

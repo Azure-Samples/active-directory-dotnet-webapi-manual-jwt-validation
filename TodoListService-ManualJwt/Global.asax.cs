@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -68,16 +69,17 @@ namespace TodoListService_ManualJwt
         // The Authority is the sign-in URL of the tenant.
         // The Audience is the value of one of the 'aud' claims the service expects to find in token to assure the token is addressed to it.
 
-        private string _audience = ConfigurationManager.AppSettings["ida:Audience"];        
+        private string _audience = ConfigurationManager.AppSettings["ida:Audience"];
         private string _clientId = ConfigurationManager.AppSettings["ida:ClientId"];
         private string _tenant = ConfigurationManager.AppSettings["ida:TenantId"];
-        private ISecurityTokenValidator _tokenValidator;
         private string _authority;
+        private ConfigurationManager<OpenIdConnectConfiguration> _configManager;
 
         public TokenValidationHandler()
         {
             _authority = string.Format(CultureInfo.InvariantCulture, ConfigurationManager.AppSettings["ida:AADInstance"], _tenant);
-            _tokenValidator = new JwtSecurityTokenHandler();
+            // The ConfigurationManager class holds properties to control the metadata refresh interval. For more details, https://docs.microsoft.com/en-us/dotnet/api/microsoft.identitymodel.protocols.configurationmanager-1?view=azure-dotnet
+            _configManager = new ConfigurationManager<OpenIdConnectConfiguration>($"{_authority}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever());
         }
 
         /// <summary>
@@ -100,7 +102,7 @@ namespace TodoListService_ManualJwt
             OpenIdConnectConfiguration config = null;
             try
             {
-                config = await GetConfigurationManager().GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
+                config = await _configManager.GetConfigurationAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -124,23 +126,37 @@ namespace TodoListService_ManualJwt
             };
 
             // Initialize the token validation parameters
-            TokenValidationParameters validationParameters = new TokenValidationParameters
-            {
-                // App Id URI and AppId of this service application are both valid audiences.
-                ValidAudiences = new[] { _audience, _clientId },
-
-                // Support Azure AD V1 and V2 endpoints.
-                ValidIssuers = validissuers,
-                IssuerSigningKeys = config.SigningKeys
-
-                // Please inspect TokenValidationParameters class for a lot more validation parameters.
-            };
+            TokenValidationParameters validationParameters = GetTokenValidationParameters(config, validissuers);
 
             try
             {
-                // Validate token.
-                SecurityToken securityToken;
-                var claimsPrincipal = _tokenValidator.ValidateToken(request.Headers.Authorization.Parameter, validationParameters, out securityToken);
+                if (string.IsNullOrWhiteSpace(request.Headers.Authorization.Parameter))
+                {
+#if DEBUG
+                    return BuildResponseErrorMessage(HttpStatusCode.Unauthorized, "No token provided in the 'Authorization' header");
+#else
+                return new HttpResponseMessage(HttpStatusCode.Unauthorized);
+#endif
+                }
+
+                string jwtToken = request.Headers.Authorization.Parameter;
+                JsonWebTokenHandler tokenHandler = new JsonWebTokenHandler();
+                TokenValidationResult result = tokenHandler.ValidateToken(jwtToken, validationParameters);
+
+                // Refresh the metadata (cached keys) if the metadata refresh has invalidated the cache (https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet/wiki/Resilience-on-metadata-refresh)
+                if (result.Exception != null && result.Exception is SecurityTokenSignatureKeyNotFoundException)
+                {
+                    _configManager.RequestRefresh();
+                    config = await _configManager.GetConfigurationAsync().ConfigureAwait(false);
+                    validationParameters = GetTokenValidationParameters(config, validissuers);
+
+                    // attempt to validate token again after refresh
+                    result = tokenHandler.ValidateToken(jwtToken, validationParameters);
+                }
+
+
+                // Create a claims principal
+                ClaimsPrincipal claimsPrincipal = new ClaimsPrincipal(result.ClaimsIdentity);
 
 #pragma warning disable 1998
                 // This check is required to ensure that the Web API only accepts tokens from tenants where it has been consented to and provisioned.
@@ -165,7 +181,7 @@ namespace TodoListService_ManualJwt
 
                 // If the token is scoped, verify that required permission is set in the scope claim.
                 // This could be done later at the controller level as well
-                return ClaimsPrincipal.Current.FindFirst(ClaimConstants.ScopeClaimType).Value != ClaimConstants.ScopeClaimValue
+                return ClaimsPrincipal.Current.FindFirst(ClaimConstants.ScpClaimType).Value != ClaimConstants.ScopeClaimValue
                     ? BuildResponseErrorMessage(HttpStatusCode.Forbidden)
                     : await base.SendAsync(request, cancellationToken);
             }
@@ -187,6 +203,22 @@ namespace TodoListService_ManualJwt
             }
         }
 
+        private TokenValidationParameters GetTokenValidationParameters(OpenIdConnectConfiguration config, IList<string> validissuers)
+        {
+            TokenValidationParameters validationParameters = new TokenValidationParameters
+            {
+                // App Id URI and AppId of this service application are both valid audiences.
+                ValidAudiences = new[] { _audience, _clientId },
+
+                // Support Azure AD V1 and V2 endpoints.
+                ValidIssuers = validissuers,
+                IssuerSigningKeys = config.SigningKeys
+
+                // Please inspect TokenValidationParameters class for a lot more validation parameters.
+            };
+            return validationParameters;
+        }
+
         private HttpResponseMessage BuildResponseErrorMessage(HttpStatusCode statusCode, string error_description = "")
         {
             var response = new HttpResponseMessage(statusCode);
@@ -196,13 +228,5 @@ namespace TodoListService_ManualJwt
                 new AuthenticationHeaderValue("Bearer", "authorization_uri=\"" + _authority + "\"" + "," + "resource_id=" + _audience + $",error_description={error_description}"));
             return response;
         }
-
-        /// <summary>
-        /// The ConfigurationManager class holds properties to control the metadata refresh interval. 
-        /// For more details, https://docs.microsoft.com/en-us/dotnet/api/microsoft.identitymodel.protocols.configurationmanager-1?view=azure-dotnet
-        /// </summary>
-        /// <returns></returns>
-        private ConfigurationManager<OpenIdConnectConfiguration> GetConfigurationManager() =>
-            new ConfigurationManager<OpenIdConnectConfiguration>($"{_authority}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever());
     }
 }
